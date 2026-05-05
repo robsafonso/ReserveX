@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa · ReserveX · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=1">
+  <script>
+    window.addEventListener('error', function(e) {
+      alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?'));
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
+    });
+  </script>
+  <style>
+    .data-bar { display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); align-items: center; flex-wrap: wrap; }
+    .data-bar input[type="date"] { flex: 1; min-width: 160px; }
+    .stats-row { display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); flex-wrap: wrap; }
+    .stat-pill { flex: 1; min-width: 90px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 10px; text-align: center; }
+    .stat-pill-v { font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: var(--color-cream); }
+    .stat-pill-l { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+    .setor-block { margin-bottom: var(--space-xl); }
+    .setor-titulo { display: flex; align-items: center; gap: var(--space-sm); font-family: var(--font-display); font-size: 1.25rem; letter-spacing: 0.03em; color: var(--color-cream); margin-bottom: var(--space-md); }
+    .setor-pill { width: 12px; height: 12px; border-radius: 50%; }
+    .setor-titulo .meta { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); letter-spacing: 0; text-transform: none; }
+    .mesa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: var(--space-sm); }
+    .mesa-card { background: var(--bg-secondary); border: 2px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); text-align: center; cursor: pointer; transition: all 0.15s; position: relative; min-height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .mesa-card:active { transform: scale(0.97); }
+    .mesa-card.livre { border-color: #404040; }
+    .mesa-card.reservada { border-color: var(--color-info); background: rgba(10, 49, 97, 0.15); }
+    .mesa-card.em_uso { border-color: var(--color-success); background: rgba(45, 106, 79, 0.15); }
+    .mesa-card.bloqueada { border-color: var(--color-warning); background: rgba(201, 151, 60, 0.1); opacity: 0.7; }
+    .mesa-nome { font-family: var(--font-display); font-size: 1.625rem; line-height: 1; color: var(--color-cream); letter-spacing: 0.05em; margin-bottom: 4px; }
+    .mesa-cap { font-size: 0.75rem; color: var(--text-muted); }
+    .mesa-status { position: absolute; top: 6px; right: 6px; font-size: 0.625rem; padding: 2px 6px; border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+    .mesa-status.livre { background: #404040; color: var(--text-secondary); }
+    .mesa-status.reservada { background: var(--color-info); color: #fff; }
+    .mesa-status.em_uso { background: var(--color-success); color: #fff; }
+    .mesa-status.bloqueada { background: var(--color-warning); color: #000; }
+    .mesa-cliente { font-size: 0.6875rem; color: var(--color-gold); margin-top: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .legend { display: flex; flex-wrap: wrap; gap: var(--space-md); font-size: 0.75rem; color: var(--text-muted); margin-bottom: var(--space-lg); justify-content: center; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; border: 2px solid; }
+    .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+    .modal-backdrop.active { display: flex; }
+    .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-default); }
+    .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
+    .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
+    .acao-btn { width: 100%; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="home.html" class="brand">
+        <div class="brand-logo">JIMMY<strong>'S</strong></div>
+        <span class="brand-badge">v1.0</span>
+      </a>
+      <div class="user-menu">
+        <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
+      </div>
+    </div>
+  </header>
+  <main class="container fade-in">
+    <h1 style="font-family: var(--font-display); margin-bottom: var(--space-sm);">Mapa de Mesas</h1>
+    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Visão em tempo real do salão.</p>
+
+    <div class="data-bar">
+      <input type="date" id="data-filtro" class="form-input">
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-hoje">Hoje</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-pill"><div class="stat-pill-v" id="s-livres">—</div><div class="stat-pill-l">Livres</div></div>
+      <div class="stat-pill"><div class="stat-pill-v" id="s-reservadas">—</div><div class="stat-pill-l">Reservadas</div></div>
+      <div class="stat-pill"><div class="stat-pill-v" id="s-emuso">—</div><div class="stat-pill-l">Em uso</div></div>
+      <div class="stat-pill"><div class="stat-pill-v" id="s-bloq">—</div><div class="stat-pill-l">Bloqueadas</div></div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="border-color:#404040"></span> Livre</div>
+      <div class="legend-item"><span class="legend-dot" style="border-color:var(--color-info)"></span> Reservada</div>
+      <div class="legend-item"><span class="legend-dot" style="border-color:var(--color-success)"></span> Em uso</div>
+      <div class="legend-item"><span class="legend-dot" style="border-color:var(--color-warning)"></span> Bloqueada</div>
+    </div>
+
+    <div id="mapa-conteudo"></div>
+  </main>
+
+  <div class="modal-backdrop" id="modal-mesa">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="mm-titulo">Mesa</div>
+        <button type="button" class="close-btn" id="btn-fechar">✕</button>
+      </div>
+      <div id="mm-body"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=1"></script>
+  <script>
+(function(){
+  try {
+    var admin = exigirLogin();
+    if (!admin) return;
+
+    var setoresCache = [];
+    var mesasCache = [];
+    var reservasHoje = [];
+    var checkinsHoje = [];
+    var mesaSelecionada = null;
+    var dataFiltro = new Date().toISOString().split('T')[0];
+
+    var modalMesa = document.getElementById('modal-mesa');
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+    }
+
+    document.getElementById('data-filtro').value = dataFiltro;
+
+    async function carregar() {
+      try {
+        var s = await sb.from('setores').select('*').eq('tenant_id', TENANT_ID).eq('ativo', true).order('ordem');
+        if (s.error) throw new Error(s.error.message);
+        setoresCache = s.data || [];
+
+        var m = await sb.from('mesas').select('*').eq('tenant_id', TENANT_ID).eq('ativa', true).order('nome');
+        if (m.error) throw new Error(m.error.message);
+        mesasCache = m.data || [];
+
+        var r = await sb.from('reservas').select('id,mesa_id,cliente_id,qtd_pessoas,status,clientes(nome_completo)').eq('tenant_id', TENANT_ID).eq('data', dataFiltro).in('status', ['confirmada','em_uso','pendente']);
+        if (r.error) throw new Error(r.error.message);
+        reservasHoje = r.data || [];
+
+        var c = await sb.from('checkins').select('id,mesa_id,cliente_id,qtd_real_pessoas,hora_chegada,hora_saida,clientes(nome_completo)').eq('tenant_id', TENANT_ID).gte('hora_chegada', dataFiltro + 'T00:00:00').lte('hora_chegada', dataFiltro + 'T23:59:59').is('hora_saida', null);
+        if (c.error) throw new Error(c.error.message);
+        checkinsHoje = c.data || [];
+
+        renderizar();
+      } catch(err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    function statusMesa(mesa) {
+      var checkin = checkinsHoje.find(function(c){return c.mesa_id === mesa.id;});
+      if (checkin) return { status: 'em_uso', cliente: checkin.clientes ? checkin.clientes.nome_completo : '', qtd: checkin.qtd_real_pessoas };
+
+      var reserva = reservasHoje.find(function(r){return r.mesa_id === mesa.id;});
+      if (reserva) return { status: 'reservada', cliente: reserva.clientes ? reserva.clientes.nome_completo : '', qtd: reserva.qtd_pessoas };
+
+      if (mesa.status === 'bloqueada') return { status: 'bloqueada' };
+
+      return { status: 'livre' };
+    }
+
+    function renderizar() {
+      var contador = { livre: 0, reservada: 0, em_uso: 0, bloqueada: 0 };
+
+      var html = '';
+      setoresCache.forEach(function(s){
+        var mesasDoSetor = mesasCache.filter(function(m){return m.setor_id === s.id;});
+        if (mesasDoSetor.length === 0) return;
+
+        html += '<div class="setor-block">' +
+          '<div class="setor-titulo"><span class="setor-pill" style="background:' + s.cor + '"></span>' +
+          escapeHtml(s.nome) + '<span class="meta">(' + mesasDoSetor.length + ' mesas)</span></div>' +
+          '<div class="mesa-grid">';
+
+        mesasDoSetor.forEach(function(m){
+          var st = statusMesa(m);
+          contador[st.status]++;
+
+          var statusLabel = st.status === 'em_uso' ? 'em uso' : st.status;
+
+          html += '<div class="mesa-card ' + st.status + '" data-id="' + m.id + '">' +
+            '<div class="mesa-status ' + st.status + '">' + statusLabel + '</div>' +
+            '<div class="mesa-nome">' + escapeHtml(m.nome) + '</div>' +
+            '<div class="mesa-cap">' + m.capacidade + ' pessoa' + (m.capacidade !== 1 ? 's' : '') + '</div>' +
+            (st.cliente ? '<div class="mesa-cliente">👤 ' + escapeHtml(st.cliente) + '</div>' : '') +
+          '</div>';
+        });
+
+        html += '</div></div>';
+      });
+
+      document.getElementById('mapa-conteudo').innerHTML = html || '<div style="text-align:center; padding:48px; color:var(--text-muted);">Nenhuma mesa cadastrada.</div>';
+      document.getElementById('s-livres').textContent = contador.livre;
+      document.getElementById('s-reservadas').textContent = contador.reservada;
+      document.getElementById('s-emuso').textContent = contador.em_uso;
+      document.getElementById('s-bloq').textContent = contador.bloqueada;
+
+      Array.prototype.forEach.call(document.querySelectorAll('.mesa-card'), function(card){
+        card.addEventListener('click', function(){ abrirModalMesa(card.dataset.id); });
+      });
+    }
+
+    function abrirModalMesa(id) {
+      var m = mesasCache.find(function(x){return x.id === id;});
+      if (!m) return;
+      mesaSelecionada = m;
+
+      var setor = setoresCache.find(function(s){return s.id === m.setor_id;});
+      var st = statusMesa(m);
+
+      document.getElementById('mm-titulo').textContent = 'Mesa ' + m.nome;
+
+      var infoExtra = '';
+      if (st.cliente) infoExtra = '<div class="alert alert-info" style="font-size:0.875rem;"><strong>👤 ' + escapeHtml(st.cliente) + '</strong> · ' + (st.qtd || '?') + ' pessoa(s)</div>';
+
+      var statusLabel = st.status === 'em_uso' ? 'em uso' : st.status;
+
+      var acoes = '';
+      if (st.status === 'livre') {
+        acoes += '<button type="button" class="btn btn-secondary acao-btn" id="btn-bloquear">🚫 Bloquear mesa</button>';
+      } else if (st.status === 'bloqueada') {
+        acoes += '<button type="button" class="btn btn-primary acao-btn" id="btn-desbloquear">✓ Desbloquear</button>';
+      }
+
+      document.getElementById('mm-body').innerHTML =
+        infoExtra +
+        '<div class="form-group"><label class="form-label">Setor</label><div>' + (setor ? escapeHtml(setor.nome) : '—') + '</div></div>' +
+        '<div class="form-group"><label class="form-label">Capacidade</label><div>' + m.capacidade + ' pessoa(s)</div></div>' +
+        '<div class="form-group"><label class="form-label">Tipo</label><div>' + escapeHtml(m.tipo) + '</div></div>' +
+        '<div class="form-group"><label class="form-label">Status atual</label><div><span class="badge badge-' + (st.status === 'livre' ? 'gray' : st.status === 'reservada' ? 'blue' : st.status === 'em_uso' ? 'green' : 'gold') + '">' + statusLabel + '</span></div></div>' +
+        '<div style="margin-top: var(--space-lg);">' + acoes + '</div>';
+
+      var btnB = document.getElementById('btn-bloquear');
+      if (btnB) btnB.addEventListener('click', function(){ alterarStatus('bloqueada'); });
+      var btnD = document.getElementById('btn-desbloquear');
+      if (btnD) btnD.addEventListener('click', function(){ alterarStatus('livre'); });
+
+      modalMesa.classList.add('active');
+    }
+
+    function fecharModal() {
+      modalMesa.classList.remove('active');
+      mesaSelecionada = null;
+    }
+
+    async function alterarStatus(novoStatus) {
+      if (!mesaSelecionada) return;
+      var resp = await sb.from('mesas').update({ status: novoStatus }).eq('id', mesaSelecionada.id);
+      if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+      toast('Mesa atualizada ✓', 'success');
+      fecharModal();
+      carregar();
+    }
+
+    document.getElementById('data-filtro').addEventListener('change', function(e){
+      dataFiltro = e.target.value;
+      carregar();
+    });
+    document.getElementById('btn-hoje').addEventListener('click', function(){
+      dataFiltro = new Date().toISOString().split('T')[0];
+      document.getElementById('data-filtro').value = dataFiltro;
+      carregar();
+    });
+    document.getElementById('btn-refresh').addEventListener('click', carregar);
+    document.getElementById('btn-fechar').addEventListener('click', fecharModal);
+    modalMesa.addEventListener('click', function(e){ if (e.target === modalMesa) fecharModal(); });
+
+    carregar();
+  } catch(err) {
+    alert('Erro fatal: ' + err.message);
+  }
+})();
+  </script>
+</body>
+</html>
