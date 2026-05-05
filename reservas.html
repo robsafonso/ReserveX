@@ -4,14 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reservas · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=1">
+  <link rel="stylesheet" href="assets/styles.css?v=2">
   <script>
-    window.addEventListener('error', function(e) {
-      alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?'));
-    });
-    window.addEventListener('unhandledrejection', function(e) {
-      alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
-    });
+    window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
+    window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
   </script>
   <style>
     .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-md); align-items: center; }
@@ -43,12 +39,9 @@
     .stat-pill { flex: 1; min-width: 80px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 10px; text-align: center; }
     .stat-pill-v { font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: var(--color-cream); }
     .stat-pill-l { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
-    .cliente-search-box { position: relative; }
-    .cliente-results { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: var(--radius-md); max-height: 200px; overflow-y: auto; z-index: 10; margin-top: 4px; display: none; }
-    .cliente-results.active { display: block; }
-    .cliente-result { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border-default); font-size: 0.875rem; }
-    .cliente-result:active { background: var(--bg-secondary); }
-    .cliente-result:last-child { border-bottom: none; }
+    .cliente-encontrado { background: rgba(45, 106, 79, 0.15); border: 1px solid var(--color-success); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+    .cliente-novo-aviso { background: rgba(201, 151, 60, 0.1); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+    .step-title { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.05em; color: var(--color-gold); margin-bottom: var(--space-md); padding-bottom: 8px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
   </style>
 </head>
 <body>
@@ -65,7 +58,7 @@
   </header>
   <main class="container fade-in">
     <h1 style="font-family: var(--font-display); margin-bottom: var(--space-sm);">Reservas</h1>
-    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Gerencie todas as reservas e gere links pra clientes.</p>
+    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Gerencie reservas, gere links e cadastre walk-ins.</p>
 
     <div class="stats-row">
       <div class="stat-pill"><div class="stat-pill-v" id="s-pend">—</div><div class="stat-pill-l">Pendentes</div></div>
@@ -102,14 +95,14 @@
         <div class="modal-title">🔗 Gerar Link de Reserva</div>
         <button type="button" class="close-btn" id="btn-fechar-link">✕</button>
       </div>
-      <p class="text-secondary" style="font-size: 0.875rem; margin-bottom: var(--space-md);">Gere um link único pra mandar pro cliente preencher os dados da reserva pelo WhatsApp.</p>
+      <p class="text-secondary" style="font-size: 0.875rem; margin-bottom: var(--space-md);">Gere um link único pra mandar pelo WhatsApp.</p>
       <div id="link-body">
         <div class="form-group"><label class="form-label">Data da reserva *</label><input type="date" id="lf-data" class="form-input"></div>
         <div class="form-group"><label class="form-label">Validade do link</label><select id="lf-validade" class="form-select"><option value="24">24 horas</option><option value="48">48 horas</option><option value="72">3 dias</option><option value="168" selected>7 dias</option><option value="0">Sem validade</option></select></div>
         <button type="button" class="btn btn-primary btn-block" id="btn-criar-link">Gerar Link</button>
       </div>
       <div id="link-resultado" style="display:none;">
-        <div class="alert alert-success" style="font-size:0.875rem;">✓ Link gerado! Manda pro cliente:</div>
+        <div class="alert alert-success" style="font-size:0.875rem;">✓ Link gerado!</div>
         <div class="link-box" id="link-url"></div>
         <button type="button" class="btn btn-gold btn-block" id="btn-copiar-link">📋 Copiar Link</button>
         <button type="button" class="btn btn-secondary btn-block" id="btn-whatsapp-link" style="margin-top:8px;">💬 Abrir WhatsApp</button>
@@ -129,7 +122,7 @@
     </div>
   </div>
 
-  <!-- Modal: Cadastro manual -->
+  <!-- Modal: Reserva Manual / Walk-in -->
   <div class="modal-backdrop" id="modal-manual">
     <div class="modal-box">
       <div class="modal-header">
@@ -137,15 +130,11 @@
         <button type="button" class="close-btn" id="btn-fechar-manual">✕</button>
       </div>
       <div id="manual-body"></div>
-      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">
-        <button type="button" class="btn btn-primary" id="btn-salvar-manual">Cadastrar</button>
-        <button type="button" class="btn btn-secondary" id="btn-cancelar-manual">Cancelar</button>
-      </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=1"></script>
+  <script src="assets/supabase.js?v=2"></script>
   <script>
 (function(){
   try {
@@ -153,11 +142,11 @@
     if (!admin) return;
 
     var reservasCache = [];
-    var clientesCache = [];
     var dataFiltro = new Date().toISOString().split('T')[0];
     var statusFiltro = 'ativas';
     var reservaSelecionada = null;
-    var clienteSelecionado = null;
+    var clienteEncontrado = null;
+    var modoCadastro = 'busca'; // 'busca', 'novo'
 
     var modalLink = document.getElementById('modal-link');
     var modalReserva = document.getElementById('modal-reserva');
@@ -170,22 +159,44 @@
       });
     }
 
+    function fmtCpf(cpf) {
+      if (!cpf) return '';
+      var d = cpf.replace(/\D/g, '');
+      if (d.length !== 11) return cpf;
+      return d.slice(0,3) + '.' + d.slice(3,6) + '.' + d.slice(6,9) + '-' + d.slice(9);
+    }
+
+    function aplicarMascaraCPF(input) {
+      input.addEventListener('input', function(){
+        var v = input.value.replace(/\D/g, '').slice(0, 11);
+        if (v.length > 9) v = v.slice(0,3) + '.' + v.slice(3,6) + '.' + v.slice(6,9) + '-' + v.slice(9);
+        else if (v.length > 6) v = v.slice(0,3) + '.' + v.slice(3,6) + '.' + v.slice(6);
+        else if (v.length > 3) v = v.slice(0,3) + '.' + v.slice(3);
+        input.value = v;
+      });
+    }
+
+    function aplicarMascaraTel(input) {
+      input.addEventListener('input', function(){
+        var v = input.value.replace(/\D/g, '').slice(0, 11);
+        if (v.length > 6) v = '(' + v.slice(0,2) + ') ' + v.slice(2,7) + '-' + v.slice(7);
+        else if (v.length > 2) v = '(' + v.slice(0,2) + ') ' + v.slice(2);
+        else if (v.length > 0) v = '(' + v;
+        input.value = v;
+      });
+    }
+
     document.getElementById('data-filtro').value = dataFiltro;
 
     async function carregar() {
       try {
         var r = await sb.from('reservas')
-          .select('*, clientes(nome_completo, telefone, instagram), mesas(nome), eventos(nome)')
+          .select('*, clientes(nome_completo, telefone, instagram, cpf), mesas(nome), eventos(nome)')
           .eq('tenant_id', TENANT_ID)
           .eq('data', dataFiltro)
           .order('created_at', { ascending: false });
         if (r.error) throw new Error(r.error.message);
         reservasCache = r.data || [];
-
-        var c = await sb.from('clientes').select('id, nome_completo, telefone, instagram, classificacao').eq('tenant_id', TENANT_ID).eq('ativo', true).order('nome_completo');
-        if (c.error) throw new Error(c.error.message);
-        clientesCache = c.data || [];
-
         renderizar();
       } catch(err) {
         alert('Erro: ' + err.message);
@@ -212,7 +223,7 @@
 
       var el = document.getElementById('lista-reservas');
       if (filtradas.length === 0) {
-        el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Nenhuma reserva ' + (statusFiltro !== 'todas' ? statusFiltro : '') + ' nessa data.</p><p style="font-size:0.875rem;margin-top:8px;">Gera um link e manda pro cliente.</p></div>';
+        el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Nenhuma reserva ' + (statusFiltro !== 'todas' ? statusFiltro : '') + ' nessa data.</p></div>';
         return;
       }
 
@@ -221,7 +232,6 @@
         var nome = r.clientes ? r.clientes.nome_completo : '(sem cliente — token pendente)';
         var tel = r.clientes ? fmtTelefone(r.clientes.telefone) : '';
         var statusLabel = r.status === 'em_uso' ? 'em uso' : r.status === 'no_show' ? 'no-show' : r.status;
-
         html += '<div class="reserva-card ' + r.status + '" data-id="' + r.id + '">' +
           '<div class="reserva-row">' +
             '<div class="reserva-info">' +
@@ -257,31 +267,19 @@
       try {
         var data = document.getElementById('lf-data').value;
         var horas = parseInt(document.getElementById('lf-validade').value, 10);
-
         if (!data) { toast('Escolha uma data', 'error'); return; }
-
         var token = gerarToken(20);
         var expiraEm = horas > 0 ? new Date(Date.now() + horas * 3600 * 1000).toISOString() : null;
-
         var resp = await sb.from('reservas').insert({
-          tenant_id: TENANT_ID,
-          data: data,
-          qtd_pessoas: 1,
-          status: 'pendente',
-          origem: 'direto',
-          token: token,
-          expira_em: expiraEm,
-          criada_por: admin.id
+          tenant_id: TENANT_ID, data: data, qtd_pessoas: 1, status: 'pendente',
+          origem: 'manual', token: token, expira_em: expiraEm, criada_por: admin.id
         });
         if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
-
         var url = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'cadastro.html?token=' + token;
         document.getElementById('link-url').textContent = url;
         document.getElementById('link-body').style.display = 'none';
         document.getElementById('link-resultado').style.display = '';
-      } catch(err) {
-        alert('Erro: ' + err.message);
-      }
+      } catch(err) { alert('Erro: ' + err.message); }
     }
 
     function copiarLinkAgora(btn) {
@@ -308,12 +306,11 @@
       reservaSelecionada = reservasCache.find(function(r){return r.id === id;});
       if (!reservaSelecionada) return;
       var r = reservaSelecionada;
-
       var nome = r.clientes ? r.clientes.nome_completo : '(sem cliente)';
       var tel = r.clientes ? r.clientes.telefone : '';
       var ig = r.clientes ? r.clientes.instagram : '';
+      var cpf = r.clientes ? r.clientes.cpf : '';
       var statusLabel = r.status === 'em_uso' ? 'em uso' : r.status === 'no_show' ? 'no-show' : r.status;
-
       document.getElementById('mr-titulo').textContent = 'Reserva';
 
       var linkInfo = '';
@@ -340,6 +337,7 @@
         linkInfo +
         '<div class="form-group"><label class="form-label">Cliente</label><div style="font-size:1rem;color:var(--color-cream);font-weight:600;">' + escapeHtml(nome) + '</div></div>' +
         (tel ? '<div class="form-group"><label class="form-label">Telefone</label><div>' + fmtTelefone(tel) + '</div></div>' : '') +
+        (cpf ? '<div class="form-group"><label class="form-label">CPF</label><div>' + fmtCpf(cpf) + '</div></div>' : '') +
         (ig ? '<div class="form-group"><label class="form-label">Instagram</label><div>' + escapeHtml(ig) + '</div></div>' : '') +
         '<div class="form-group"><label class="form-label">Data</label><div>' + fmtData(r.data) + '</div></div>' +
         '<div class="form-group"><label class="form-label">Pessoas</label><div>' + r.qtd_pessoas + '</div></div>' +
@@ -372,7 +370,6 @@
       var dados = { status: novo };
       if (novo === 'confirmada') dados.confirmada_por = admin.id;
       if (novo === 'cancelada') dados.cancelada_por = admin.id;
-
       var resp = await sb.from('reservas').update(dados).eq('id', reservaSelecionada.id);
       if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
       toast('Reserva atualizada ✓', 'success');
@@ -380,59 +377,154 @@
       carregar();
     }
 
-    // ===== MANUAL =====
+    // ===== RESERVA MANUAL / WALK-IN =====
     function abrirModalManual() {
-      clienteSelecionado = null;
-      document.getElementById('manual-body').innerHTML =
-        '<div class="form-group"><label class="form-label">Cliente *</label>' +
-          '<div class="cliente-search-box">' +
-            '<input type="text" id="man-cliente-busca" class="form-input" placeholder="Busca nome ou telefone do cliente">' +
-            '<div class="cliente-results" id="man-cliente-results"></div>' +
-          '</div>' +
-          '<div id="man-cliente-sel" style="margin-top:8px;font-size:0.875rem;color:var(--color-gold);"></div>' +
-        '</div>' +
-        '<div class="form-group"><label class="form-label">Data *</label><input type="date" id="man-data" class="form-input" value="' + dataFiltro + '"></div>' +
-        '<div class="form-group"><label class="form-label">Pessoas *</label><input type="number" id="man-pessoas" class="form-input" inputmode="numeric" min="1" value="2"></div>' +
-        '<div class="form-group"><label class="form-label">Origem</label><select id="man-origem" class="form-select"><option value="direto">Direto</option><option value="instagram">Instagram</option><option value="telefone">Telefone</option></select></div>' +
-        '<div class="form-group"><label class="form-label">Observações</label><textarea id="man-obs" class="form-textarea" placeholder="Aniversário, preferência..."></textarea></div>';
-
-      var inp = document.getElementById('man-cliente-busca');
-      var box = document.getElementById('man-cliente-results');
-      inp.addEventListener('input', function(){
-        var t = inp.value.trim().toLowerCase();
-        if (t.length < 2) { box.classList.remove('active'); return; }
-        var res = clientesCache.filter(function(c){
-          return c.nome_completo.toLowerCase().indexOf(t) >= 0 || (c.telefone || '').indexOf(t) >= 0;
-        }).slice(0, 8);
-        box.innerHTML = res.map(function(c){ return '<div class="cliente-result" data-id="' + c.id + '">' + escapeHtml(c.nome_completo) + ' <small style="color:var(--text-muted)">' + fmtTelefone(c.telefone) + '</small></div>'; }).join('');
-        Array.prototype.forEach.call(box.querySelectorAll('.cliente-result'), function(r){
-          r.addEventListener('click', function(){
-            clienteSelecionado = clientesCache.find(function(c){return c.id === r.dataset.id;});
-            inp.value = '';
-            document.getElementById('man-cliente-sel').textContent = '✓ ' + clienteSelecionado.nome_completo;
-            box.classList.remove('active');
-          });
-        });
-        box.classList.add('active');
-      });
-
+      clienteEncontrado = null;
+      modoCadastro = 'busca';
+      renderizarModalManual();
       modalManual.classList.add('active');
     }
 
-    async function salvarManual() {
+    function renderizarModalManual() {
+      var html = '<div class="step-title">1. Identificar cliente</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">Telefone</label>' +
+          '<input type="tel" id="busca-tel" class="form-input" inputmode="numeric" placeholder="(43) 99999-9999">' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">OU CPF</label>' +
+          '<input type="tel" id="busca-cpf" class="form-input" inputmode="numeric" placeholder="000.000.000-00">' +
+        '</div>' +
+        '<button type="button" class="btn btn-gold btn-block" id="btn-buscar-cliente">🔍 Buscar Cliente</button>' +
+        '<div id="resultado-busca" style="margin-top:var(--space-md);"></div>' +
+      '</div>';
+      document.getElementById('manual-body').innerHTML = html;
+      aplicarMascaraTel(document.getElementById('busca-tel'));
+      aplicarMascaraCPF(document.getElementById('busca-cpf'));
+      document.getElementById('btn-buscar-cliente').addEventListener('click', buscarCliente);
+    }
+
+    async function buscarCliente() {
+      var tel = document.getElementById('busca-tel').value.replace(/\D/g, '');
+      var cpf = document.getElementById('busca-cpf').value.replace(/\D/g, '');
+      var div = document.getElementById('resultado-busca');
+
+      if (!tel && !cpf) { toast('Digite telefone ou CPF', 'error'); return; }
+      if (tel && tel.length < 10) { toast('Telefone incompleto', 'error'); return; }
+      if (cpf && cpf.length !== 11) { toast('CPF inválido', 'error'); return; }
+
+      div.innerHTML = '<div class="spinner" style="margin: 0 auto;"></div>';
+
       try {
-        if (!clienteSelecionado) { toast('Escolha um cliente', 'error'); return; }
-        var data = document.getElementById('man-data').value;
-        var pessoas = parseInt(document.getElementById('man-pessoas').value, 10);
-        var origem = document.getElementById('man-origem').value;
-        var obs = document.getElementById('man-obs').value.trim();
+        var query = sb.from('clientes').select('*').eq('tenant_id', TENANT_ID).eq('ativo', true);
+        if (cpf) query = query.eq('cpf', cpf);
+        else query = query.eq('telefone', tel);
+        var resp = await query.maybeSingle();
+
+        if (resp.data) {
+          clienteEncontrado = resp.data;
+          mostrarClienteEncontrado();
+        } else {
+          mostrarFormularioNovo(tel, cpf);
+        }
+      } catch(err) {
+        div.innerHTML = '<div class="alert alert-error">Erro: ' + err.message + '</div>';
+      }
+    }
+
+    function mostrarClienteEncontrado() {
+      var c = clienteEncontrado;
+      var html = '<div class="cliente-encontrado">' +
+        '<strong style="color:var(--color-cream);font-size:1.0625rem;">✓ ' + escapeHtml(c.nome_completo) + '</strong>' +
+        '<div style="font-size:0.8125rem;color:var(--text-secondary);margin-top:6px;">' +
+          (c.telefone ? '📞 ' + fmtTelefone(c.telefone) + '<br>' : '') +
+          (c.cpf ? '📄 ' + fmtCpf(c.cpf) + '<br>' : '') +
+          '👁 ' + (c.visitas_total || 0) + ' visitas · ' + c.classificacao +
+        '</div>' +
+      '</div>' +
+      camposReserva() +
+      '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
+        '<button type="button" class="btn btn-primary" id="btn-confirmar-reserva" style="flex:1;">✓ Cadastrar Reserva</button>' +
+        '<button type="button" class="btn btn-ghost" id="btn-trocar">Trocar</button>' +
+      '</div>';
+      document.getElementById('resultado-busca').innerHTML = html;
+      document.getElementById('btn-trocar').addEventListener('click', function(){ clienteEncontrado = null; renderizarModalManual(); });
+      document.getElementById('btn-confirmar-reserva').addEventListener('click', function(){ salvarReserva(false); });
+    }
+
+    function mostrarFormularioNovo(tel, cpf) {
+      var html = '<div class="cliente-novo-aviso">' +
+        '<strong style="color:var(--color-gold);">⚠ Cliente não encontrado</strong>' +
+        '<div style="font-size:0.8125rem;color:var(--text-secondary);margin-top:4px;">Cadastre os dados abaixo + a reserva.</div>' +
+      '</div>' +
+      '<div class="step-title">2. Cadastrar novo cliente</div>' +
+      '<div class="form-group"><label class="form-label">Nome completo *</label><input type="text" id="novo-nome" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">Telefone *</label><input type="tel" id="novo-tel" class="form-input" inputmode="numeric" value="' + (tel ? fmtTelefone(tel) : '') + '" placeholder="(43) 99999-9999"></div>' +
+      '<div class="form-group"><label class="form-label">CPF</label><input type="tel" id="novo-cpf" class="form-input" inputmode="numeric" value="' + (cpf ? fmtCpf(cpf) : '') + '" placeholder="000.000.000-00"></div>' +
+      '<div class="form-group"><label class="form-label">Instagram</label><input type="text" id="novo-ig" class="form-input" placeholder="@usuario"></div>' +
+      camposReserva() +
+      '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
+        '<button type="button" class="btn btn-primary" id="btn-cadastrar-tudo" style="flex:1;">✓ Cadastrar Cliente + Reserva</button>' +
+        '<button type="button" class="btn btn-ghost" id="btn-trocar">Voltar</button>' +
+      '</div>';
+      document.getElementById('resultado-busca').innerHTML = html;
+      aplicarMascaraTel(document.getElementById('novo-tel'));
+      aplicarMascaraCPF(document.getElementById('novo-cpf'));
+      document.getElementById('btn-trocar').addEventListener('click', function(){ renderizarModalManual(); });
+      document.getElementById('btn-cadastrar-tudo').addEventListener('click', function(){ salvarReserva(true); });
+    }
+
+    function camposReserva() {
+      return '<div class="step-title" style="margin-top:var(--space-lg);">' + (clienteEncontrado ? '2' : '3') + '. Dados da reserva</div>' +
+        '<div class="form-group"><label class="form-label">Data *</label><input type="date" id="r-data" class="form-input" value="' + dataFiltro + '"></div>' +
+        '<div class="form-group"><label class="form-label">Pessoas *</label><input type="number" id="r-pessoas" class="form-input" inputmode="numeric" min="1" value="2"></div>' +
+        '<div class="form-group"><label class="form-label">Origem</label><select id="r-origem" class="form-select"><option value="walk_in">Walk-in (chegou na hora)</option><option value="telefone">Telefone</option><option value="instagram">Instagram</option><option value="manual">Manual</option></select></div>' +
+        '<div class="form-group"><label class="form-label">Observações</label><textarea id="r-obs" class="form-textarea" placeholder="Aniversário, alergias, preferência..."></textarea></div>';
+    }
+
+    async function salvarReserva(cadastrarCliente) {
+      try {
+        var data = document.getElementById('r-data').value;
+        var pessoas = parseInt(document.getElementById('r-pessoas').value, 10);
+        var origem = document.getElementById('r-origem').value;
+        var obs = document.getElementById('r-obs').value.trim();
 
         if (!data) { toast('Data inválida', 'error'); return; }
         if (!pessoas || pessoas < 1) { toast('Pessoas inválido', 'error'); return; }
 
+        var clienteId;
+
+        if (cadastrarCliente) {
+          var nome = document.getElementById('novo-nome').value.trim();
+          var tel = document.getElementById('novo-tel').value.replace(/\D/g, '');
+          var cpf = document.getElementById('novo-cpf').value.replace(/\D/g, '');
+          var ig = document.getElementById('novo-ig').value.trim();
+
+          if (!nome || nome.length < 3) { toast('Nome obrigatório', 'error'); return; }
+          if (!tel || tel.length < 10) { toast('Telefone inválido', 'error'); return; }
+          if (cpf && cpf.length !== 11) { toast('CPF inválido', 'error'); return; }
+
+          var novo = await sb.from('clientes').insert({
+            tenant_id: TENANT_ID,
+            nome_completo: nome,
+            telefone: tel,
+            cpf: cpf || null,
+            instagram: ig || null,
+            origem: origem === 'walk_in' ? 'walk_in' : 'manual'
+          }).select('id').maybeSingle();
+
+          if (novo.error) {
+            if (novo.error.code === '23505') { toast('Telefone ou CPF já cadastrado', 'error'); return; }
+            throw new Error(novo.error.message);
+          }
+          clienteId = novo.data.id;
+        } else {
+          clienteId = clienteEncontrado.id;
+        }
+
         var resp = await sb.from('reservas').insert({
           tenant_id: TENANT_ID,
-          cliente_id: clienteSelecionado.id,
+          cliente_id: clienteId,
           data: data,
           qtd_pessoas: pessoas,
           status: 'confirmada',
@@ -441,26 +533,24 @@
           criada_por: admin.id,
           confirmada_por: admin.id
         });
-        if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
-        toast('Reserva criada ✓', 'success');
+
+        if (resp.error) throw new Error(resp.error.message);
+
+        toast(cadastrarCliente ? 'Cliente + reserva criados ✓' : 'Reserva criada ✓', 'success');
         modalManual.classList.remove('active');
         carregar();
       } catch(err) {
-        alert('Erro: ' + err.message);
+        toast('Erro: ' + err.message, 'error');
       }
     }
 
     // ===== EVENTS =====
-    document.getElementById('data-filtro').addEventListener('change', function(e){
-      dataFiltro = e.target.value;
-      carregar();
-    });
+    document.getElementById('data-filtro').addEventListener('change', function(e){ dataFiltro = e.target.value; carregar(); });
     document.getElementById('btn-hoje').addEventListener('click', function(){
       dataFiltro = new Date().toISOString().split('T')[0];
       document.getElementById('data-filtro').value = dataFiltro;
       carregar();
     });
-
     Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(chip){
       chip.addEventListener('click', function(){
         Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(c){ c.classList.remove('active'); });
@@ -469,7 +559,6 @@
         renderizar();
       });
     });
-
     document.getElementById('btn-gerar-link').addEventListener('click', abrirModalLink);
     document.getElementById('btn-fechar-link').addEventListener('click', function(){ modalLink.classList.remove('active'); });
     document.getElementById('btn-criar-link').addEventListener('click', criarLink);
@@ -477,14 +566,10 @@
     document.getElementById('btn-whatsapp-link').addEventListener('click', abrirWhatsappLink);
     document.getElementById('btn-novo-link').addEventListener('click', novoLink);
     modalLink.addEventListener('click', function(e){ if (e.target === modalLink) modalLink.classList.remove('active'); });
-
     document.getElementById('btn-fechar-reserva').addEventListener('click', function(){ modalReserva.classList.remove('active'); });
     modalReserva.addEventListener('click', function(e){ if (e.target === modalReserva) modalReserva.classList.remove('active'); });
-
     document.getElementById('btn-nova-manual').addEventListener('click', abrirModalManual);
     document.getElementById('btn-fechar-manual').addEventListener('click', function(){ modalManual.classList.remove('active'); });
-    document.getElementById('btn-cancelar-manual').addEventListener('click', function(){ modalManual.classList.remove('active'); });
-    document.getElementById('btn-salvar-manual').addEventListener('click', salvarManual);
     modalManual.addEventListener('click', function(e){ if (e.target === modalManual) modalManual.classList.remove('active'); });
 
     carregar();
