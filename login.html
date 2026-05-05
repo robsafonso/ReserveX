@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login · ReserveX · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=1">
+  <style>
+    body {
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-md);
+    }
+    .login-wrapper { width: 100%; max-width: 420px; }
+    .login-header { text-align: center; margin-bottom: var(--space-xl); }
+    .login-logo {
+      font-family: var(--font-display);
+      font-size: 3.5rem;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      color: var(--color-cream);
+      margin-bottom: var(--space-sm);
+    }
+    .login-logo .red { color: var(--color-red-bright); }
+    .login-subtitle {
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--color-gold);
+    }
+    .login-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      box-shadow: var(--shadow-lg);
+      border-top: 3px solid var(--color-red);
+    }
+    .login-stripes {
+      display: flex;
+      gap: 2px;
+      margin-bottom: var(--space-xl);
+      justify-content: center;
+    }
+    .login-stripes span {
+      width: 24px;
+      height: 3px;
+    }
+    .login-stripes span:nth-child(1) { background: var(--color-red); }
+    .login-stripes span:nth-child(2) { background: var(--color-cream); }
+    .login-stripes span:nth-child(3) { background: var(--color-navy); }
+    .form-actions { margin-top: var(--space-lg); }
+    .login-footer {
+      text-align: center;
+      margin-top: var(--space-lg);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="login-wrapper fade-in">
+    
+    <div class="login-header">
+      <div class="login-logo">JIMMY<span class="red">'S</span></div>
+      <div class="login-subtitle">Sistema de Reservas</div>
+    </div>
+    
+    <div class="login-card">
+      <div class="login-stripes">
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+      </div>
+      
+      <h2 class="section-title" style="justify-content: center; margin-bottom: var(--space-lg);">
+        Acesso Restrito
+      </h2>
+      
+      <div id="msg-erro"></div>
+      
+      <div class="form-group">
+        <label class="form-label" for="usuario">Usuário</label>
+        <input type="text" id="usuario" class="form-input" autocomplete="username" placeholder="admin" autofocus>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="senha">Senha</label>
+        <input type="password" id="senha" class="form-input" autocomplete="current-password" placeholder="••••••••">
+      </div>
+      
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary btn-block btn-lg" id="btn-login">
+          Entrar
+        </button>
+      </div>
+    </div>
+    
+    <div class="login-footer">
+      <a href="index.html" style="color: var(--text-muted);">← Voltar</a>
+      <span style="margin: 0 var(--space-sm);">·</span>
+      <span>ReserveX v1.0</span>
+    </div>
+    
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=1"></script>
+  <script>
+    const inputUser = document.getElementById('usuario');
+    const inputSenha = document.getElementById('senha');
+    const msgErro = document.getElementById('msg-erro');
+    const btnLogin = document.getElementById('btn-login');
+    
+    if (getAdminLogado()) {
+      window.location.href = 'home.html';
+    }
+    
+    function mostrarErro(msg) {
+      msgErro.innerHTML = `<div class="alert alert-error">${msg}</div>`;
+    }
+    
+    async function entrar() {
+      const usuario = inputUser.value.trim();
+      const senha = inputSenha.value;
+      
+      if (!usuario || !senha) {
+        mostrarErro('Preencha usuário e senha.');
+        return;
+      }
+      
+      btnLogin.disabled = true;
+      btnLogin.innerHTML = '<span class="spinner"></span> Entrando...';
+      msgErro.innerHTML = '';
+      
+      try {
+        await fazerLogin(usuario, senha);
+        window.location.href = 'home.html';
+      } catch (err) {
+        mostrarErro(err.message || 'Erro ao entrar.');
+        btnLogin.disabled = false;
+        btnLogin.innerHTML = 'Entrar';
+      }
+    }
+    
+    btnLogin.addEventListener('click', entrar);
+    
+    [inputUser, inputSenha].forEach(input => {
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') entrar();
+      });
+    });
+  </script>
+  
+</body>
+</html>
