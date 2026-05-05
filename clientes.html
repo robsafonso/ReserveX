@@ -142,4 +142,285 @@
           var resp = await sb
             .from('clientes')
             .select('*')
-            .eq('tenant_id', TEN​​​​​​​​​​​​​​​​
+            .eq('tenant_id', TENANT_ID)
+            .eq('ativo', true)
+            .order('created_at', { ascending: false });
+          
+          if (resp.error) {
+            lista.innerHTML = '<div class="alert alert-error">Erro: ' + resp.error.message + '</div>';
+            return;
+          }
+          
+          clientesCache = resp.data || [];
+          atualizarStats();
+          renderizar();
+        } catch(err) {
+          alert('Erro carregar: ' + err.message);
+        }
+      }
+      
+      function atualizarStats() {
+        document.getElementById('s-total').textContent = clientesCache.length;
+        document.getElementById('s-vip').textContent = clientesCache.filter(function(c){return c.classificacao==='vip';}).length;
+        document.getElementById('s-recorrentes').textContent = clientesCache.filter(function(c){return c.classificacao==='recorrente';}).length;
+        document.getElementById('s-novos').textContent = clientesCache.filter(function(c){return c.classificacao==='novo';}).length;
+      }
+      
+      function renderizar() {
+        var termo = inputBusca.value.trim().toLowerCase();
+        var filtrados = clientesCache;
+        
+        if (filtroAtivo === 'vip') {
+          filtrados = filtrados.filter(function(c){
+            return c.classificacao === 'vip' || (c.tags || []).indexOf('vip') >= 0;
+          });
+        } else if (filtroAtivo === 'recorrente') {
+          filtrados = filtrados.filter(function(c){return c.classificacao === 'recorrente';});
+        } else if (filtroAtivo === 'novo') {
+          filtrados = filtrados.filter(function(c){return c.classificacao === 'novo';});
+        } else if (filtroAtivo === 'aniversariante') {
+          var hoje = new Date();
+          filtrados = filtrados.filter(function(c){
+            if (!c.data_nascimento) return false;
+            var d = new Date(c.data_nascimento);
+            return d.getMonth() === hoje.getMonth();
+          });
+        }
+        
+        if (termo) {
+          filtrados = filtrados.filter(function(c){
+            return (c.nome_completo || '').toLowerCase().indexOf(termo) >= 0 ||
+                   (c.telefone || '').indexOf(termo) >= 0 ||
+                   (c.instagram || '').toLowerCase().indexOf(termo) >= 0;
+          });
+        }
+        
+        if (filtrados.length === 0) {
+          var msg = clientesCache.length === 0 ? 'Cadastre o primeiro!' : 'Tenta outro termo ou filtro.';
+          lista.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>Nenhum cliente encontrado.</p><p style="font-size: 0.875rem; margin-top: 8px;">' + msg + '</p></div>';
+          return;
+        }
+        
+        var html = '';
+        filtrados.forEach(function(c){
+          var tags = (c.tags || []).slice(0, 3);
+          var classBadge = c.classificacao === 'vip' ? 'badge-gold' : 
+                           c.classificacao === 'recorrente' ? 'badge-green' :
+                           c.classificacao === 'novo' ? 'badge-blue' : 'badge-gray';
+          
+          var tagsHtml = '';
+          if (tags.length) {
+            tagsHtml = '<div class="cliente-tags" style="margin-top: 4px; justify-content: flex-end;">';
+            tags.forEach(function(t){ tagsHtml += '<span class="badge badge-gray">' + escapeHtml(t) + '</span>'; });
+            tagsHtml += '</div>';
+          }
+          
+          html += '<div class="cliente-card" data-id="' + c.id + '">' +
+            '<div class="cliente-row">' +
+              '<div class="cliente-info">' +
+                '<div class="cliente-nome">' + escapeHtml(c.nome_completo) + '</div>' +
+                '<div class="cliente-meta">' +
+                  '<span>📞 ' + fmtTelefone(c.telefone) + '</span>' +
+                  (c.instagram ? '<span>📷 ' + escapeHtml(c.instagram) + '</span>' : '') +
+                  '<span>👁 ' + (c.visitas_total || 0) + ' visitas</span>' +
+                '</div>' +
+              '</div>' +
+              '<div style="text-align: right;">' +
+                '<span class="badge ' + classBadge + '">' + c.classificacao + '</span>' +
+                tagsHtml +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        });
+        
+        lista.innerHTML = html;
+        
+        // Event delegation - clicar em qualquer card abre modal
+        Array.prototype.forEach.call(lista.querySelectorAll('.cliente-card'), function(el){
+          el.addEventListener('click', function(){
+            abrirModal(el.dataset.id);
+          });
+        });
+      }
+      
+      function abrirModal(id) {
+        clienteEditando = id ? clientesCache.find(function(c){return c.id === id;}) : null;
+        var c = clienteEditando || {};
+        
+        document.getElementById('modal-titulo').textContent = id ? 'Editar Cliente' : 'Novo Cliente';
+        document.getElementById('btn-deletar').style.display = id ? '' : 'none';
+        
+        var tags = c.tags || [];
+        
+        var headerInfo = '';
+        if (id) {
+          var ultimaVisita = c.ultima_visita ? fmtData(c.ultima_visita) : '-';
+          headerInfo = '<div class="alert alert-info" style="font-size: 0.8125rem;">' +
+            '<strong>' + (c.visitas_total || 0) + '</strong> visitas · ' +
+            'Última: <strong>' + ultimaVisita + '</strong> · ' +
+            'Classificação: <strong>' + c.classificacao + '</strong>' +
+            '</div>';
+        }
+        
+        var tagsHtml = '<div class="tag-edit" id="tags-edit">';
+        TAGS_DISPONIVEIS.forEach(function(t){
+          var isOn = tags.indexOf(t) >= 0;
+          tagsHtml += '<span class="tag-toggle ' + (isOn ? 'on' : '') + '" data-tag="' + t + '">' + t + '</span>';
+        });
+        tagsHtml += '</div>';
+        
+        document.getElementById('modal-body').innerHTML =
+          headerInfo +
+          '<div class="form-group"><label class="form-label">Nome completo *</label>' +
+            '<input type="text" id="f-nome" class="form-input" value="' + escapeHtml(c.nome_completo || '') + '"></div>' +
+          '<div class="form-group"><label class="form-label">Telefone *</label>' +
+            '<input type="tel" id="f-telefone" class="form-input" inputmode="numeric" value="' + escapeHtml(c.telefone || '') + '" placeholder="(43) 99999-9999"></div>' +
+          '<div class="form-group"><label class="form-label">Instagram</label>' +
+            '<input type="text" id="f-instagram" class="form-input" value="' + escapeHtml(c.instagram || '') + '" placeholder="@usuario"></div>' +
+          '<div class="form-group"><label class="form-label">Email</label>' +
+            '<input type="email" id="f-email" class="form-input" value="' + escapeHtml(c.email || '') + '"></div>' +
+          '<div class="form-group"><label class="form-label">Data de nascimento</label>' +
+            '<input type="date" id="f-nasc" class="form-input" value="' + (c.data_nascimento || '') + '"></div>' +
+          '<div class="form-group"><label class="form-label">Tags</label>' + tagsHtml + '</div>' +
+          '<div class="form-group"><label class="form-label">Observações</label>' +
+            '<textarea id="f-obs" class="form-textarea">' + escapeHtml(c.observacoes || '') + '</textarea></div>';
+        
+        Array.prototype.forEach.call(document.querySelectorAll('#tags-edit .tag-toggle'), function(el){
+          el.addEventListener('click', function(){ el.classList.toggle('on'); });
+        });
+        
+        modal.classList.add('active');
+      }
+      
+      function fecharModal() {
+        modal.classList.remove('active');
+        clienteEditando = null;
+      }
+      
+      async function salvar() {
+        try {
+          var nome = document.getElementById('f-nome').value.trim();
+          var telefone = document.getElementById('f-telefone').value.replace(/\D/g, '');
+          var instagram = document.getElementById('f-instagram').value.trim();
+          var email = document.getElementById('f-email').value.trim();
+          var nasc = document.getElementById('f-nasc').value || null;
+          var obs = document.getElementById('f-obs').value.trim();
+          
+          var tags = [];
+          Array.prototype.forEach.call(document.querySelectorAll('#tags-edit .tag-toggle.on'), function(el){
+            tags.push(el.dataset.tag);
+          });
+          
+          if (!nome) { toast('Nome é obrigatório', 'error'); return; }
+          if (!telefone || telefone.length < 10) { toast('Telefone inválido', 'error'); return; }
+          
+          var dados = {
+            tenant_id: TENANT_ID,
+            nome_completo: nome,
+            telefone: telefone,
+            instagram: instagram || null,
+            email: email || null,
+            data_nascimento: nasc,
+            observacoes: obs || null,
+            tags: tags,
+            origem: 'manual'
+          };
+          
+          if (tags.indexOf('vip') >= 0) dados.classificacao = 'vip';
+          
+          var resp;
+          if (clienteEditando) {
+            resp = await sb.from('clientes').update(dados).eq('id', clienteEditando.id);
+          } else {
+            resp = await sb.from('clientes').insert(dados);
+          }
+          
+          if (resp.error) {
+            if (resp.error.code === '23505') toast('Já existe cliente com esse telefone', 'error');
+            else toast('Erro: ' + resp.error.message, 'error');
+            return;
+          }
+          
+          toast(clienteEditando ? 'Cliente atualizado ✓' : 'Cliente cadastrado ✓', 'success');
+          fecharModal();
+          carregar();
+        } catch(err) {
+          alert('Erro salvar: ' + err.message);
+        }
+      }
+      
+      async function deletar() {
+        if (!clienteEditando) return;
+        if (!confirm('Deletar ' + clienteEditando.nome_completo + '?')) return;
+        
+        var resp = await sb.from('clientes').update({ ativo: false }).eq('id', clienteEditando.id);
+        if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+        
+        toast('Cliente removido', 'success');
+        fecharModal();
+        carregar();
+      }
+      
+      function exportarCSV() {
+        var headers = ['Nome','Telefone','Instagram','Email','Visitas','Classificação','Última visita','Tags','Cadastrado em'];
+        var linhas = clientesCache.map(function(c){
+          return [
+            c.nome_completo,
+            c.telefone,
+            c.instagram || '',
+            c.email || '',
+            c.visitas_total || 0,
+            c.classificacao,
+            c.ultima_visita ? fmtData(c.ultima_visita) : '',
+            (c.tags || []).join('; '),
+            fmtData(c.created_at)
+          ];
+        });
+        
+        var csv = [headers].concat(linhas)
+          .map(function(l){ return l.map(function(v){ return '"' + String(v).replace(/"/g,'""') + '"'; }).join(','); })
+          .join('\n');
+        
+        var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'clientes-jimmys-' + new Date().toISOString().split('T')[0] + '.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        toast('CSV exportado ✓', 'success');
+      }
+      
+      // Event listeners
+      document.getElementById('btn-novo').addEventListener('click', function(){ abrirModal(); });
+      document.getElementById('btn-salvar').addEventListener('click', salvar);
+      document.getElementById('btn-deletar').addEventListener('click', deletar);
+      document.getElementById('btn-export').addEventListener('click', exportarCSV);
+      document.getElementById('btn-fechar').addEventListener('click', fecharModal);
+      document.getElementById('btn-cancelar').addEventListener('click', fecharModal);
+      
+      inputBusca.addEventListener('input', renderizar);
+      
+      Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(chip){
+        chip.addEventListener('click', function(){
+          Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(c){ c.classList.remove('active'); });
+          chip.classList.add('active');
+          filtroAtivo = chip.dataset.filtro;
+          renderizar();
+        });
+      });
+      
+      modal.addEventListener('click', function(e){
+        if (e.target === modal) fecharModal();
+      });
+      
+      carregar();
+      
+    } catch(err) {
+      alert('Erro fatal: ' + err.message);
+    }
+  })();
+  </script>
+  
+</body>
+</html>
