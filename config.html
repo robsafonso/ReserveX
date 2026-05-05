@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setores e Mesas · ReserveX · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=1">
+  <script>
+    window.addEventListener('error', function(e) {
+      alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?'));
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
+    });
+  </script>
+  <style>
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-default); margin-bottom: var(--space-lg); }
+    .tab { padding: 12px 20px; cursor: pointer; color: var(--text-secondary); font-weight: 600; font-size: 0.9375rem; border-bottom: 2px solid transparent; transition: all 0.15s; }
+    .tab.active { color: var(--color-cream); border-bottom-color: var(--color-red); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .setor-row { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-sm); display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); }
+    .setor-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-sm); }
+    .setor-cor { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+    .setor-nome { font-weight: 600; color: var(--color-cream); }
+    .setor-meta { font-size: 0.8125rem; color: var(--text-muted); }
+    .setor-acoes { display: flex; gap: 6px; flex-shrink: 0; }
+    .icon-btn { width: 36px; height: 36px; border-radius: var(--radius-md); border: 1px solid var(--border-default); background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; }
+    .icon-btn:active { border-color: var(--color-red); color: var(--color-red); }
+    .mesa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: var(--space-sm); margin-bottom: var(--space-lg); }
+    .mesa-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); text-align: center; cursor: pointer; transition: all 0.15s; position: relative; }
+    .mesa-card:active { border-color: var(--color-red); }
+    .mesa-card.inativa { opacity: 0.4; }
+    .mesa-card-cor { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: var(--radius-md) var(--radius-md) 0 0; }
+    .mesa-nome { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); letter-spacing: 0.05em; line-height: 1; margin-bottom: 4px; margin-top: 4px; }
+    .mesa-cap { font-size: 0.75rem; color: var(--text-muted); }
+    .mesa-tipo { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-gold); margin-top: 2px; }
+    .setor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); }
+    .setor-header h3 { font-family: var(--font-display); font-size: 1.25rem; letter-spacing: 0.03em; color: var(--color-cream); display: flex; align-items: center; gap: var(--space-sm); }
+    .setor-pill { width: 12px; height: 12px; border-radius: 50%; }
+    .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+    .modal-backdrop.active { display: flex; }
+    .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-default); }
+    .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
+    .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
+    .empty { text-align: center; padding: var(--space-xl) var(--space-md); color: var(--text-muted); }
+    .color-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+    .color-swatch { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
+    .color-swatch.selected { border-color: var(--color-cream); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="home.html" class="brand">
+        <div class="brand-logo">JIMMY<strong>'S</strong></div>
+        <span class="brand-badge">v1.0</span>
+      </a>
+      <div class="user-menu">
+        <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
+      </div>
+    </div>
+  </header>
+  <main class="container fade-in">
+    <h1 style="font-family: var(--font-display); margin-bottom: var(--space-sm);">Setores e Mesas</h1>
+    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Estrutura física do bar.</p>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="setores">Setores</div>
+      <div class="tab" data-tab="mesas">Mesas</div>
+    </div>
+
+    <div class="tab-content active" id="tab-setores">
+      <div style="margin-bottom: var(--space-md);">
+        <button type="button" class="btn btn-primary" id="btn-novo-setor">+ Novo Setor</button>
+      </div>
+      <div id="lista-setores"></div>
+    </div>
+
+    <div class="tab-content" id="tab-mesas">
+      <div style="margin-bottom: var(--space-md);">
+        <button type="button" class="btn btn-primary" id="btn-nova-mesa">+ Nova Mesa</button>
+      </div>
+      <div id="lista-mesas"></div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="modal-setor">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-setor-titulo">Setor</div>
+        <button type="button" class="close-btn" id="btn-fechar-setor">✕</button>
+      </div>
+      <div id="modal-setor-body"></div>
+      <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-lg); flex-wrap: wrap;">
+        <button type="button" class="btn btn-primary" id="btn-salvar-setor">Salvar</button>
+        <button type="button" class="btn btn-secondary" id="btn-cancelar-setor">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btn-deletar-setor" style="margin-left: auto;">🗑️</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-mesa">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-mesa-titulo">Mesa</div>
+        <button type="button" class="close-btn" id="btn-fechar-mesa">✕</button>
+      </div>
+      <div id="modal-mesa-body"></div>
+      <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-lg); flex-wrap: wrap;">
+        <button type="button" class="btn btn-primary" id="btn-salvar-mesa">Salvar</button>
+        <button type="button" class="btn btn-secondary" id="btn-cancelar-mesa">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btn-deletar-mesa" style="margin-left: auto;">🗑️</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=1"></script>
+  <script>
+(function(){
+  try {
+    var admin = exigirLogin();
+    if (!admin) return;
+    if (admin.nivel !== 'master') {
+      alert('Acesso restrito ao Master.');
+      window.location.href = 'home.html';
+      return;
+    }
+
+    var CORES = ['#c8102e','#c9973c','#0a3161','#2d6a4f','#9b1c1c','#7c3aed','#0891b2','#ea580c'];
+    var TIPOS_MESA = ['alta','baixa','bistro','balcao','sofa','lounge','camarote'];
+
+    var setoresCache = [];
+    var mesasCache = [];
+    var setorEditando = null;
+    var mesaEditando = null;
+
+    var modalSetor = document.getElementById('modal-setor');
+    var modalMesa = document.getElementById('modal-mesa');
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+    }
+
+    async function carregarTudo() {
+      try {
+        var s = await sb.from('setores').select('*').eq('tenant_id', TENANT_ID).order('ordem');
+        if (s.error) throw new Error(s.error.message);
+        setoresCache = s.data || [];
+
+        var m = await sb.from('mesas').select('*').eq('tenant_id', TENANT_ID).order('nome');
+        if (m.error) throw new Error(m.error.message);
+        mesasCache = m.data || [];
+
+        renderizarSetores();
+        renderizarMesas();
+      } catch(err) {
+        alert('Erro ao carregar: ' + err.message);
+      }
+    }
+
+    function renderizarSetores() {
+      var el = document.getElementById('lista-setores');
+      if (setoresCache.length === 0) {
+        el.innerHTML = '<div class="empty"><p>Nenhum setor ainda.</p></div>';
+        return;
+      }
+      var html = '';
+      setoresCache.forEach(function(s){
+        var qtdMesas = mesasCache.filter(function(m){return m.setor_id === s.id && m.ativa;}).length;
+        html += '<div class="setor-row" data-id="' + s.id + '">' +
+          '<div class="setor-info">' +
+            '<div class="setor-cor" style="background:' + s.cor + '"></div>' +
+            '<div>' +
+              '<div class="setor-nome">' + escapeHtml(s.nome) + '</div>' +
+              '<div class="setor-meta">' + qtdMesas + ' mesas · ordem ' + s.ordem + (s.ativo ? '' : ' · INATIVO') + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="setor-acoes">' +
+            '<button type="button" class="icon-btn btn-edit-setor" data-id="' + s.id + '">✏️</button>' +
+          '</div>' +
+        '</div>';
+      });
+      el.innerHTML = html;
+
+      Array.prototype.forEach.call(document.querySelectorAll('.btn-edit-setor'), function(btn){
+        btn.addEventListener('click', function(){ abrirModalSetor(btn.dataset.id); });
+      });
+    }
+
+    function renderizarMesas() {
+      var el = document.getElementById('lista-mesas');
+      if (setoresCache.length === 0) {
+        el.innerHTML = '<div class="empty"><p>Crie um setor primeiro.</p></div>';
+        return;
+      }
+      var html = '';
+      setoresCache.forEach(function(s){
+        var mesasDoSetor = mesasCache.filter(function(m){return m.setor_id === s.id;});
+        if (mesasDoSetor.length === 0) return;
+
+        html += '<div class="setor-header">' +
+          '<h3><span class="setor-pill" style="background:' + s.cor + '"></span>' + escapeHtml(s.nome) + ' <span style="color:var(--text-muted);font-size:0.8125rem;font-weight:400;">(' + mesasDoSetor.length + ')</span></h3>' +
+        '</div>';
+        html += '<div class="mesa-grid">';
+        mesasDoSetor.forEach(function(m){
+          html += '<div class="mesa-card ' + (m.ativa ? '' : 'inativa') + '" data-id="' + m.id + '">' +
+            '<div class="mesa-card-cor" style="background:' + s.cor + '"></div>' +
+            '<div class="mesa-nome">' + escapeHtml(m.nome) + '</div>' +
+            '<div class="mesa-cap">' + m.capacidade + ' pessoa' + (m.capacidade !== 1 ? 's' : '') + '</div>' +
+            '<div class="mesa-tipo">' + escapeHtml(m.tipo) + '</div>' +
+          '</div>';
+        });
+        html += '</div>';
+      });
+
+      var semSetor = mesasCache.filter(function(m){return !m.setor_id;});
+      if (semSetor.length) {
+        html += '<div class="setor-header"><h3>Sem setor</h3></div><div class="mesa-grid">';
+        semSetor.forEach(function(m){
+          html += '<div class="mesa-card" data-id="' + m.id + '"><div class="mesa-nome">' + escapeHtml(m.nome) + '</div><div class="mesa-cap">' + m.capacidade + '</div></div>';
+        });
+        html += '</div>';
+      }
+
+      el.innerHTML = html || '<div class="empty"><p>Nenhuma mesa ainda.</p></div>';
+
+      Array.prototype.forEach.call(el.querySelectorAll('.mesa-card'), function(card){
+        card.addEventListener('click', function(){ abrirModalMesa(card.dataset.id); });
+      });
+    }
+
+    function abrirModalSetor(id) {
+      setorEditando = id ? setoresCache.find(function(s){return s.id === id;}) : null;
+      var s = setorEditando || { nome:'', ordem: setoresCache.length + 1, cor: CORES[0], ativo: true };
+
+      document.getElementById('modal-setor-titulo').textContent = id ? 'Editar Setor' : 'Novo Setor';
+      document.getElementById('btn-deletar-setor').style.display = id ? '' : 'none';
+
+      var coresHtml = '<div class="color-picker">';
+      CORES.forEach(function(cor){
+        coresHtml += '<div class="color-swatch ' + (cor === s.cor ? 'selected' : '') + '" data-cor="' + cor + '" style="background:' + cor + '"></div>';
+      });
+      coresHtml += '</div>';
+
+      document.getElementById('modal-setor-body').innerHTML =
+        '<div class="form-group"><label class="form-label">Nome *</label><input type="text" id="sf-nome" class="form-input" value="' + escapeHtml(s.nome) + '" placeholder="Ex: Pista, Lounge..."></div>' +
+        '<div class="form-group"><label class="form-label">Ordem</label><input type="number" id="sf-ordem" class="form-input" inputmode="numeric" value="' + s.ordem + '"></div>' +
+        '<div class="form-group"><label class="form-label">Cor</label>' + coresHtml + '<input type="hidden" id="sf-cor" value="' + s.cor + '"></div>' +
+        '<div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="sf-ativo" ' + (s.ativo ? 'checked' : '') + '> Setor ativo</label></div>';
+
+      Array.prototype.forEach.call(document.querySelectorAll('.color-swatch'), function(sw){
+        sw.addEventListener('click', function(){
+          Array.prototype.forEach.call(document.querySelectorAll('.color-swatch'), function(o){ o.classList.remove('selected'); });
+          sw.classList.add('selected');
+          document.getElementById('sf-cor').value = sw.dataset.cor;
+        });
+      });
+
+      modalSetor.classList.add('active');
+    }
+
+    function fecharModalSetor() {
+      modalSetor.classList.remove('active');
+      setorEditando = null;
+    }
+
+    async function salvarSetor() {
+      try {
+        var nome = document.getElementById('sf-nome').value.trim();
+        var ordem = parseInt(document.getElementById('sf-ordem').value, 10) || 0;
+        var cor = document.getElementById('sf-cor').value;
+        var ativo = document.getElementById('sf-ativo').checked;
+
+        if (!nome) { toast('Nome é obrigatório', 'error'); return; }
+
+        var dados = { tenant_id: TENANT_ID, nome: nome, ordem: ordem, cor: cor, ativo: ativo };
+        var resp;
+        if (setorEditando) {
+          resp = await sb.from('setores').update(dados).eq('id', setorEditando.id);
+        } else {
+          resp = await sb.from('setores').insert(dados);
+        }
+        if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+
+        toast(setorEditando ? 'Setor atualizado ✓' : 'Setor criado ✓', 'success');
+        fecharModalSetor();
+        carregarTudo();
+      } catch(err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    async function deletarSetor() {
+      if (!setorEditando) return;
+      var qtd = mesasCache.filter(function(m){return m.setor_id === setorEditando.id;}).length;
+      if (qtd > 0) {
+        toast('Setor tem ' + qtd + ' mesa(s). Mova ou apague antes.', 'error');
+        return;
+      }
+      if (!confirm('Deletar setor "' + setorEditando.nome + '"?')) return;
+
+      var resp = await sb.from('setores').delete().eq('id', setorEditando.id);
+      if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+      toast('Setor removido', 'success');
+      fecharModalSetor();
+      carregarTudo();
+    }
+
+    function abrirModalMesa(id) {
+      mesaEditando = id ? mesasCache.find(function(m){return m.id === id;}) : null;
+      var m = mesaEditando || { nome:'', capacidade: 4, tipo: 'baixa', setor_id: setoresCache[0] ? setoresCache[0].id : null, ativa: true };
+
+      document.getElementById('modal-mesa-titulo').textContent = id ? 'Editar Mesa' : 'Nova Mesa';
+      document.getElementById('btn-deletar-mesa').style.display = id ? '' : 'none';
+
+      var setoresOpts = setoresCache.map(function(s){
+        return '<option value="' + s.id + '" ' + (s.id === m.setor_id ? 'selected' : '') + '>' + escapeHtml(s.nome) + '</option>';
+      }).join('');
+
+      var tiposOpts = TIPOS_MESA.map(function(t){
+        return '<option value="' + t + '" ' + (t === m.tipo ? 'selected' : '') + '>' + t + '</option>';
+      }).join('');
+
+      document.getElementById('modal-mesa-body').innerHTML =
+        '<div class="form-group"><label class="form-label">Nome / Número *</label><input type="text" id="mf-nome" class="form-input" value="' + escapeHtml(m.nome) + '" placeholder="Ex: P1, L2, Camarote 1..."></div>' +
+        '<div class="form-group"><label class="form-label">Setor *</label><select id="mf-setor" class="form-select">' + setoresOpts + '</select></div>' +
+        '<div class="form-group"><label class="form-label">Capacidade *</label><input type="number" id="mf-cap" class="form-input" inputmode="numeric" min="1" value="' + m.capacidade + '"></div>' +
+        '<div class="form-group"><label class="form-label">Tipo</label><select id="mf-tipo" class="form-select">' + tiposOpts + '</select></div>' +
+        '<div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="mf-ativa" ' + (m.ativa ? 'checked' : '') + '> Mesa ativa</label></div>';
+
+      modalMesa.classList.add('active');
+    }
+
+    function fecharModalMesa() {
+      modalMesa.classList.remove('active');
+      mesaEditando = null;
+    }
+
+    async function salvarMesa() {
+      try {
+        var nome = document.getElementById('mf-nome').value.trim();
+        var setorId = document.getElementById('mf-setor').value;
+        var cap = parseInt(document.getElementById('mf-cap').value, 10) || 1;
+        var tipo = document.getElementById('mf-tipo').value;
+        var ativa = document.getElementById('mf-ativa').checked;
+
+        if (!nome) { toast('Nome é obrigatório', 'error'); return; }
+        if (!setorId) { toast('Selecione um setor', 'error'); return; }
+
+        var dados = { tenant_id: TENANT_ID, nome: nome, setor_id: setorId, capacidade: cap, tipo: tipo, ativa: ativa };
+        var resp;
+        if (mesaEditando) {
+          resp = await sb.from('mesas').update(dados).eq('id', mesaEditando.id);
+        } else {
+          resp = await sb.from('mesas').insert(dados);
+        }
+        if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+
+        toast(mesaEditando ? 'Mesa atualizada ✓' : 'Mesa criada ✓', 'success');
+        fecharModalMesa();
+        carregarTudo();
+      } catch(err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    async function deletarMesa() {
+      if (!mesaEditando) return;
+      if (!confirm('Deletar mesa "' + mesaEditando.nome + '"?')) return;
+
+      var resp = await sb.from('mesas').delete().eq('id', mesaEditando.id);
+      if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+      toast('Mesa removida', 'success');
+      fecharModalMesa();
+      carregarTudo();
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(tab){
+      tab.addEventListener('click', function(){
+        Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(t){ t.classList.remove('active'); });
+        Array.prototype.forEach.call(document.querySelectorAll('.tab-content'), function(c){ c.classList.remove('active'); });
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    document.getElementById('btn-novo-setor').addEventListener('click', function(){ abrirModalSetor(); });
+    document.getElementById('btn-salvar-setor').addEventListener('click', salvarSetor);
+    document.getElementById('btn-deletar-setor').addEventListener('click', deletarSetor);
+    document.getElementById('btn-fechar-setor').addEventListener('click', fecharModalSetor);
+    document.getElementById('btn-cancelar-setor').addEventListener('click', fecharModalSetor);
+    modalSetor.addEventListener('click', function(e){ if (e.target === modalSetor) fecharModalSetor(); });
+
+    document.getElementById('btn-nova-mesa').addEventListener('click', function(){ abrirModalMesa(); });
+    document.getElementById('btn-salvar-mesa').addEventListener('click', salvarMesa);
+    document.getElementById('btn-deletar-mesa').addEventListener('click', deletarMesa);
+    document.getElementById('btn-fechar-mesa').addEventListener('click', fecharModalMesa);
+    document.getElementById('btn-cancelar-mesa').addEventListener('click', fecharModalMesa);
+    modalMesa.addEventListener('click', function(e){ if (e.target === modalMesa) fecharModalMesa(); });
+
+    carregarTudo();
+  } catch(err) {
+    alert('Erro fatal: ' + err.message);
+  }
+})();
+  </script>
+</body>
+</html>
