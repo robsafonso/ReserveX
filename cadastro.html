@@ -58,7 +58,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=1"></script>
+  <script src="assets/supabase.js?v=2"></script>
   <script>
 (function(){
   try {
@@ -100,6 +100,17 @@
       '</div>';
     }
 
+    // Máscara de telefone (43) 99999-9999
+    function aplicarMascaraTel(input) {
+      input.addEventListener('input', function(){
+        var v = input.value.replace(/\D/g, '').slice(0, 11);
+        if (v.length > 6) v = '(' + v.slice(0,2) + ') ' + v.slice(2,7) + '-' + v.slice(7);
+        else if (v.length > 2) v = '(' + v.slice(0,2) + ') ' + v.slice(2);
+        else if (v.length > 0) v = '(' + v;
+        input.value = v;
+      });
+    }
+
     async function validarToken() {
       try {
         var r = await sb.from('reservas')
@@ -128,7 +139,6 @@
           return;
         }
 
-        // Carrega config do dia
         var c = await sb.from('dias_config').select('*').eq('tenant_id', TENANT_ID).eq('data', reserva.data).maybeSingle();
         if (!c.error) diaConfig = c.data;
 
@@ -137,7 +147,6 @@
           return;
         }
 
-        // Carrega evento se houver
         if (reserva.evento_id) {
           var e = await sb.from('eventos').select('*').eq('id', reserva.evento_id).maybeSingle();
           if (!e.error) evento = e.data;
@@ -171,6 +180,7 @@
           '<button type="button" class="btn btn-primary btn-block btn-lg" id="btn-enviar" style="margin-top:var(--space-md);">🇺🇸 Confirmar Reserva</button>' +
         '</div>';
 
+      aplicarMascaraTel(document.getElementById('f-telefone'));
       document.getElementById('btn-enviar').addEventListener('click', enviar);
     }
 
@@ -196,13 +206,11 @@
         btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;display:inline-block;vertical-align:middle;"></span> Enviando...';
         document.getElementById('msg-erro').innerHTML = '';
 
-        // 1. Cria/encontra cliente pelo telefone
         var existe = await sb.from('clientes').select('id').eq('tenant_id', TENANT_ID).eq('telefone', telefone).maybeSingle();
         var clienteId;
 
         if (existe.data) {
           clienteId = existe.data.id;
-          // Atualiza dados que possam estar mais recentes
           await sb.from('clientes').update({
             nome_completo: nome,
             instagram: instagram || null,
@@ -215,13 +223,12 @@
             telefone: telefone,
             instagram: instagram || null,
             data_nascimento: nasc,
-            origem: 'direto'
+            origem: 'manual'
           }).select('id').maybeSingle();
           if (novo.error) throw new Error(novo.error.message);
           clienteId = novo.data.id;
         }
 
-        // 2. Atualiza a reserva com cliente + dados
         var upd = await sb.from('reservas').update({
           cliente_id: clienteId,
           qtd_pessoas: pessoas,
