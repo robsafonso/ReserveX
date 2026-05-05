@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel · ReserveX · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=1">
+</head>
+<body>
+  
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="home.html" class="brand">
+        <div class="brand-logo">JIMMY<strong>'S</strong></div>
+        <span class="brand-badge">v1.0</span>
+      </a>
+      
+      <div class="user-menu">
+        <div class="user-info">
+          <strong id="admin-nome">—</strong><br>
+          <small id="admin-nivel">—</small>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-logout">Sair</button>
+      </div>
+    </div>
+  </header>
+  
+  <main class="container fade-in">
+    
+    <div style="margin-bottom: var(--space-xl);">
+      <h1 style="font-family: var(--font-display); letter-spacing: 0.03em;">
+        Boa <span id="periodo-dia">noite</span>!
+      </h1>
+      <p class="text-secondary">Aqui está o resumo do Jimmy's hoje.</p>
+    </div>
+    
+    <section class="section">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Reservas hoje</div>
+          <div class="stat-value" id="stat-reservas">—</div>
+          <div class="stat-meta" id="stat-reservas-meta">Carregando...</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-label">Pessoas esperadas</div>
+          <div class="stat-value" id="stat-pessoas">—</div>
+          <div class="stat-meta">Confirmadas + em uso</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-label">Taxa de ocupação</div>
+          <div class="stat-value" id="stat-ocupacao">—</div>
+          <div class="stat-meta">Mesas reservadas / disponíveis</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-label">Total de clientes</div>
+          <div class="stat-value" id="stat-clientes">—</div>
+          <div class="stat-meta">Na base do CRM</div>
+        </div>
+      </div>
+    </section>
+    
+    <section class="section">
+      <h2 class="section-title">Operação</h2>
+      <div class="nav-grid">
+        <a href="reservas.html" class="nav-tile">
+          <span class="nav-tile-icon">📋</span>
+          <div class="nav-tile-label">Reservas</div>
+          <div class="nav-tile-desc">Gerenciar bookings</div>
+        </a>
+        
+        <a href="mapa.html" class="nav-tile">
+          <span class="nav-tile-icon">🗺️</span>
+          <div class="nav-tile-label">Mapa</div>
+          <div class="nav-tile-desc">Visão das mesas</div>
+        </a>
+        
+        <a href="clientes.html" class="nav-tile">
+          <span class="nav-tile-icon">👥</span>
+          <div class="nav-tile-label">Clientes</div>
+          <div class="nav-tile-desc">CRM e histórico</div>
+        </a>
+        
+        <a href="calendario.html" class="nav-tile">
+          <span class="nav-tile-icon">📅</span>
+          <div class="nav-tile-label">Calendário</div>
+          <div class="nav-tile-desc">Configurar dias</div>
+        </a>
+        
+        <a href="eventos.html" class="nav-tile">
+          <span class="nav-tile-icon">🎤</span>
+          <div class="nav-tile-label">Eventos</div>
+          <div class="nav-tile-desc">Atrações e shows</div>
+        </a>
+        
+        <a href="mensagens.html" class="nav-tile">
+          <span class="nav-tile-icon">💬</span>
+          <div class="nav-tile-label">Mensagens</div>
+          <div class="nav-tile-desc">Templates WhatsApp</div>
+        </a>
+      </div>
+    </section>
+    
+    <section class="section" id="section-config" style="display:none;">
+      <h2 class="section-title">Configuração</h2>
+      <div class="nav-grid">
+        <a href="config.html" class="nav-tile">
+          <span class="nav-tile-icon">⚙️</span>
+          <div class="nav-tile-label">Setores e Mesas</div>
+          <div class="nav-tile-desc">Estrutura física</div>
+        </a>
+        
+        <a href="admins.html" class="nav-tile">
+          <span class="nav-tile-icon">🔐</span>
+          <div class="nav-tile-label">Usuários</div>
+          <div class="nav-tile-desc">Equipe do sistema</div>
+        </a>
+        
+        <a href="auditoria.html" class="nav-tile">
+          <span class="nav-tile-icon">📊</span>
+          <div class="nav-tile-label">Auditoria</div>
+          <div class="nav-tile-desc">Log de ações</div>
+        </a>
+      </div>
+    </section>
+    
+    <div class="alert alert-info">
+      <strong>🚧 Sistema em construção</strong> — você está vendo a Fase 1 do ReserveX.
+      Várias telas ainda serão entregues nas próximas fases.
+    </div>
+    
+  </main>
+  
+  <footer class="footer">
+    <div>
+      ReserveX v1.0 · Jimmy's Bar · Londrina, PR<br>
+      <span style="color: var(--color-gold);">🇺🇸 American Bar Autêntico 🔥</span>
+    </div>
+  </footer>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=1"></script>
+  <script>
+    const admin = exigirLogin();
+    if (!admin) throw new Error('Não logado');
+    
+    const hora = new Date().getHours();
+    document.getElementById('periodo-dia').textContent = 
+      hora < 6 ? 'noite' :
+      hora < 12 ? 'dia' :
+      hora < 18 ? 'tarde' : 'noite';
+    
+    document.getElementById('admin-nome').textContent = admin.nome;
+    document.getElementById('admin-nivel').textContent = admin.nivel;
+    
+    if (admin.nivel === 'master') {
+      document.getElementById('section-config').style.display = '';
+    }
+    
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      if (confirm('Sair do sistema?')) logout();
+    });
+    
+    async function carregarStats() {
+      try {
+        const hoje = new Date().toISOString().split('T')[0];
+        
+        const { count: countReservas } = await sb
+          .from('reservas')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', TENANT_ID)
+          .eq('data', hoje)
+          .in('status', ['pendente', 'confirmada', 'em_uso']);
+        
+        document.getElementById('stat-reservas').textContent = countReservas ?? 0;
+        document.getElementById('stat-reservas-meta').textContent = 
+          countReservas === 0 ? 'Nenhuma reserva ainda' : `${countReservas} confirmadas/em uso`;
+        
+        const { data: reservas } = await sb
+          .from('reservas')
+          .select('qtd_pessoas')
+          .eq('tenant_id', TENANT_ID)
+          .eq('data', hoje)
+          .in('status', ['pendente', 'confirmada', 'em_uso']);
+        
+        const totalPessoas = (reservas || []).reduce((s, r) => s + (r.qtd_pessoas || 0), 0);
+        document.getElementById('stat-pessoas').textContent = totalPessoas;
+        
+        const { count: countClientes } = await sb
+          .from('clientes')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', TENANT_ID)
+          .eq('ativo', true);
+        
+        document.getElementById('stat-clientes').textContent = countClientes ?? 0;
+        
+        const { count: totalMesas } = await sb
+          .from('mesas')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', TENANT_ID)
+          .eq('ativa', true);
+        
+        const ocupacao = totalMesas > 0 
+          ? Math.round((countReservas / totalMesas) * 100)
+          : 0;
+        document.getElementById('stat-ocupacao').textContent = ocupacao + '%';
+        
+      } catch (err) {
+        console.error('Erro ao carregar stats:', err);
+        ['stat-reservas', 'stat-pessoas', 'stat-ocupacao', 'stat-clientes']
+          .forEach(id => document.getElementById(id).textContent = '—');
+      }
+    }
+    
+    carregarStats();
+  </script>
+  
+</body>
+</html>
