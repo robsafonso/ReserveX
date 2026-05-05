@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendário · ReserveX · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=1">
+  <script>
+    window.addEventListener('error', function(e) {
+      alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?'));
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
+    });
+  </script>
+  <style>
+    .month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); gap: var(--space-md); }
+    .month-title { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 0.03em; color: var(--color-cream); flex: 1; text-align: center; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: var(--space-lg); }
+    .calendar-head { font-size: 0.6875rem; text-align: center; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; padding: 6px 0; font-weight: 600; }
+    .calendar-day { aspect-ratio: 1; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; position: relative; transition: all 0.15s; min-height: 48px; }
+    .calendar-day.outside { opacity: 0.3; cursor: default; }
+    .calendar-day.today { border-color: var(--color-gold); }
+    .calendar-day.has-config { border-color: var(--color-red); }
+    .calendar-day.has-event { background: linear-gradient(180deg, rgba(200, 16, 46, 0.15), var(--bg-secondary)); border-color: var(--color-red); }
+    .calendar-day.fechado { opacity: 0.5; background: #1a0606; }
+    .calendar-day.lotado { background: rgba(201, 151, 60, 0.1); border-color: var(--color-gold); }
+    .calendar-day:active { transform: scale(0.96); }
+    .day-num { font-family: var(--font-display); font-size: 1.125rem; line-height: 1; color: var(--color-cream); }
+    .day-marker { position: absolute; bottom: 4px; width: 4px; height: 4px; border-radius: 50%; }
+    .day-marker.evento { background: var(--color-red); }
+    .day-marker.config { background: var(--color-gold); }
+    .legend { display: flex; flex-wrap: wrap; gap: var(--space-md); font-size: 0.75rem; color: var(--text-muted); margin-bottom: var(--space-lg); justify-content: center; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+    .modal-backdrop.active { display: flex; }
+    .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-default); }
+    .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
+    .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
+    .setor-toggle-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .setor-toggle { padding: 6px 12px; border-radius: var(--radius-full); border: 1px solid var(--border-default); background: var(--bg-tertiary); color: var(--text-secondary); font-size: 0.8125rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .setor-toggle.blocked { background: rgba(155, 28, 28, 0.2); border-color: var(--color-error); color: #fca5a5; }
+    .setor-toggle .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+    @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="home.html" class="brand">
+        <div class="brand-logo">JIMMY<strong>'S</strong></div>
+        <span class="brand-badge">v1.0</span>
+      </a>
+      <div class="user-menu">
+        <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
+      </div>
+    </div>
+  </header>
+  <main class="container fade-in">
+    <h1 style="font-family: var(--font-display); margin-bottom: var(--space-sm);">Calendário</h1>
+    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Toca num dia pra configurar reservas, couvert, setores bloqueados e eventos.</p>
+
+    <div class="month-nav">
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-mes-ant">‹ Mês ant.</button>
+      <div class="month-title" id="mes-titulo">—</div>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-mes-prox">Próx. mês ›</button>
+    </div>
+
+    <div class="calendar-grid" id="cal-head">
+      <div class="calendar-head">Dom</div>
+      <div class="calendar-head">Seg</div>
+      <div class="calendar-head">Ter</div>
+      <div class="calendar-head">Qua</div>
+      <div class="calendar-head">Qui</div>
+      <div class="calendar-head">Sex</div>
+      <div class="calendar-head">Sáb</div>
+    </div>
+
+    <div class="calendar-grid" id="cal-body"></div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:var(--color-red)"></span> Configurado</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--color-gold)"></span> Hoje</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--color-error)"></span> Fechado</div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="modal-dia">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-dia-titulo">—</div>
+        <button type="button" class="close-btn" id="btn-fechar-dia">✕</button>
+      </div>
+      <div id="modal-dia-body"></div>
+      <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-lg); flex-wrap: wrap;">
+        <button type="button" class="btn btn-primary" id="btn-salvar-dia">Salvar</button>
+        <button type="button" class="btn btn-secondary" id="btn-cancelar-dia">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btn-limpar-dia" style="margin-left: auto;">Limpar config</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=1"></script>
+  <script>
+(function(){
+  try {
+    var admin = exigirLogin();
+    if (!admin) return;
+
+    var MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+    var hoje = new Date();
+    var mesAtual = hoje.getMonth();
+    var anoAtual = hoje.getFullYear();
+
+    var configsCache = {};
+    var setoresCache = [];
+    var eventosCache = {};
+    var diaEditando = null;
+
+    var modalDia = document.getElementById('modal-dia');
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+    }
+
+    function dataIso(y, m, d) {
+      var mm = String(m + 1).padStart(2, '0');
+      var dd = String(d).padStart(2, '0');
+      return y + '-' + mm + '-' + dd;
+    }
+
+    async function carregar() {
+      try {
+        var primeiroDia = dataIso(anoAtual, mesAtual, 1);
+        var ultimoDiaNum = new Date(anoAtual, mesAtual + 1, 0).getDate();
+        var ultimoDia = dataIso(anoAtual, mesAtual, ultimoDiaNum);
+
+        var s = await sb.from('setores').select('*').eq('tenant_id', TENANT_ID).eq('ativo', true).order('ordem');
+        if (s.error) throw new Error(s.error.message);
+        setoresCache = s.data || [];
+
+        var c = await sb.from('dias_config').select('*').eq('tenant_id', TENANT_ID).gte('data', primeiroDia).lte('data', ultimoDia);
+        if (c.error) throw new Error(c.error.message);
+        configsCache = {};
+        (c.data || []).forEach(function(cfg){ configsCache[cfg.data] = cfg; });
+
+        var e = await sb.from('eventos').select('*').eq('tenant_id', TENANT_ID).gte('data', primeiroDia).lte('data', ultimoDia).eq('cancelado', false);
+        if (e.error) throw new Error(e.error.message);
+        eventosCache = {};
+        (e.data || []).forEach(function(ev){ eventosCache[ev.data] = ev; });
+
+        renderizar();
+      } catch(err) {
+        alert('Erro ao carregar: ' + err.message);
+      }
+    }
+
+    function renderizar() {
+      document.getElementById('mes-titulo').textContent = MESES[mesAtual] + ' ' + anoAtual;
+
+      var primeiroDia = new Date(anoAtual, mesAtual, 1);
+      var diaSemanaInicio = primeiroDia.getDay();
+      var ultimoDiaNum = new Date(anoAtual, mesAtual + 1, 0).getDate();
+
+      var hojeStr = dataIso(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+
+      var html = '';
+
+      for (var i = 0; i < diaSemanaInicio; i++) {
+        html += '<div class="calendar-day outside"></div>';
+      }
+
+      for (var d = 1; d <= ultimoDiaNum; d++) {
+        var iso = dataIso(anoAtual, mesAtual, d);
+        var cfg = configsCache[iso];
+        var ev = eventosCache[iso];
+
+        var classes = ['calendar-day'];
+        if (iso === hojeStr) classes.push('today');
+        if (cfg) classes.push('has-config');
+        if (ev) classes.push('has-event');
+        if (cfg && cfg.status === 'fechado') classes.push('fechado');
+        if (cfg && cfg.status === 'lotado') classes.push('lotado');
+
+        html += '<div class="' + classes.join(' ') + '" data-data="' + iso + '">' +
+          '<div class="day-num">' + d + '</div>';
+        if (ev) html += '<div class="day-marker evento"></div>';
+        else if (cfg) html += '<div class="day-marker config"></div>';
+        html += '</div>';
+      }
+
+      document.getElementById('cal-body').innerHTML = html;
+
+      Array.prototype.forEach.call(document.querySelectorAll('.calendar-day:not(.outside)'), function(el){
+        el.addEventListener('click', function(){ abrirModalDia(el.dataset.data); });
+      });
+    }
+
+    function abrirModalDia(iso) {
+      diaEditando = iso;
+      var cfg = configsCache[iso] || {
+        data: iso,
+        percentual_reservavel: 100,
+        horario_abertura: '17:30',
+        horario_limite: '22:00',
+        couvert_valor: 0,
+        capacidade_maxima: null,
+        setores_bloqueados: [],
+        status: 'aberto',
+        observacoes: '',
+        evento_id: null
+      };
+      var ev = eventosCache[iso];
+
+      var partes = iso.split('-');
+      var dataObj = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+      var diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+      var titulo = diasSemana[dataObj.getDay()] + ', ' + parseInt(partes[2]) + ' de ' + MESES[dataObj.getMonth()];
+
+      document.getElementById('modal-dia-titulo').textContent = titulo;
+      document.getElementById('btn-limpar-dia').style.display = configsCache[iso] ? '' : 'none';
+
+      var bloqueados = cfg.setores_bloqueados || [];
+      var setoresHtml = '<div class="setor-toggle-grid">';
+      setoresCache.forEach(function(s){
+        var blocked = bloqueados.indexOf(s.id) >= 0;
+        setoresHtml += '<span class="setor-toggle ' + (blocked ? 'blocked' : '') + '" data-id="' + s.id + '">' +
+          '<span class="dot" style="background:' + s.cor + '"></span>' + escapeHtml(s.nome) + (blocked ? ' 🚫' : '') +
+        '</span>';
+      });
+      setoresHtml += '</div>';
+
+      var eventoBox = '';
+      if (ev) {
+        eventoBox = '<div class="alert alert-warning" style="font-size:0.875rem;"><strong>🎤 Evento:</strong> ' + escapeHtml(ev.nome) + (ev.atracao ? ' · ' + escapeHtml(ev.atracao) : '') + '</div>';
+      }
+
+      document.getElementById('modal-dia-body').innerHTML =
+        eventoBox +
+        '<div class="form-row">' +
+          '<div class="form-group"><label class="form-label">Status</label><select id="df-status" class="form-select"><option value="aberto" ' + (cfg.status==='aberto'?'selected':'') + '>Aberto</option><option value="lotado" ' + (cfg.status==='lotado'?'selected':'') + '>Lotado</option><option value="fechado" ' + (cfg.status==='fechado'?'selected':'') + '>Fechado</option></select></div>' +
+          '<div class="form-group"><label class="form-label">% Reservável</label><input type="number" id="df-perc" class="form-input" inputmode="numeric" min="0" max="100" value="' + cfg.percentual_reservavel + '"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<div class="form-group"><label class="form-label">Abertura</label><input type="time" id="df-abertura" class="form-input" value="' + cfg.horario_abertura + '"></div>' +
+          '<div class="form-group"><label class="form-label">Horário-limite</label><input type="time" id="df-limite" class="form-input" value="' + cfg.horario_limite + '"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+          '<div class="form-group"><label class="form-label">Couvert (R$)</label><input type="number" id="df-couvert" class="form-input" inputmode="decimal" step="0.01" min="0" value="' + cfg.couvert_valor + '"></div>' +
+          '<div class="form-group"><label class="form-label">Cap. máxima</label><input type="number" id="df-cap" class="form-input" inputmode="numeric" min="0" value="' + (cfg.capacidade_maxima || '') + '" placeholder="Sem limite"></div>' +
+        '</div>' +
+        '<div class="form-group"><label class="form-label">Setores bloqueados (toca pra alternar)</label>' + setoresHtml + '</div>' +
+        '<div class="form-group"><label class="form-label">Observações</label><textarea id="df-obs" class="form-textarea" placeholder="Ex: véspera de feriado">' + escapeHtml(cfg.observacoes || '') + '</textarea></div>';
+
+      Array.prototype.forEach.call(document.querySelectorAll('.setor-toggle'), function(el){
+        el.addEventListener('click', function(){ el.classList.toggle('blocked'); });
+      });
+
+      modalDia.classList.add('active');
+    }
+
+    function fecharModalDia() {
+      modalDia.classList.remove('active');
+      diaEditando = null;
+    }
+
+    async function salvarDia() {
+      try {
+        var bloqueados = [];
+        Array.prototype.forEach.call(document.querySelectorAll('.setor-toggle.blocked'), function(el){
+          bloqueados.push(el.dataset.id);
+        });
+
+        var capRaw = document.getElementById('df-cap').value;
+        var dados = {
+          tenant_id: TENANT_ID,
+          data: diaEditando,
+          status: document.getElementById('df-status').value,
+          percentual_reservavel: parseInt(document.getElementById('df-perc').value, 10) || 100,
+          horario_abertura: document.getElementById('df-abertura').value,
+          horario_limite: document.getElementById('df-limite').value,
+          couvert_valor: parseFloat(document.getElementById('df-couvert').value) || 0,
+          capacidade_maxima: capRaw ? parseInt(capRaw, 10) : null,
+          setores_bloqueados: bloqueados,
+          observacoes: document.getElementById('df-obs').value.trim() || null
+        };
+
+        var existente = configsCache[diaEditando];
+        var resp;
+        if (existente) {
+          resp = await sb.from('dias_config').update(dados).eq('id', existente.id);
+        } else {
+          resp = await sb.from('dias_config').insert(dados);
+        }
+        if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+
+        toast('Dia configurado ✓', 'success');
+        fecharModalDia();
+        carregar();
+      } catch(err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    async function limparDia() {
+      if (!diaEditando) return;
+      var existente = configsCache[diaEditando];
+      if (!existente) return;
+      if (!confirm('Limpar configuração desse dia?')) return;
+
+      var resp = await sb.from('dias_config').delete().eq('id', existente.id);
+      if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+      toast('Configuração removida', 'success');
+      fecharModalDia();
+      carregar();
+    }
+
+    document.getElementById('btn-mes-ant').addEventListener('click', function(){
+      mesAtual--;
+      if (mesAtual < 0) { mesAtual = 11; anoAtual--; }
+      carregar();
+    });
+    document.getElementById('btn-mes-prox').addEventListener('click', function(){
+      mesAtual++;
+      if (mesAtual > 11) { mesAtual = 0; anoAtual++; }
+      carregar();
+    });
+
+    document.getElementById('btn-salvar-dia').addEventListener('click', salvarDia);
+    document.getElementById('btn-fechar-dia').addEventListener('click', fecharModalDia);
+    document.getElementById('btn-cancelar-dia').addEventListener('click', fecharModalDia);
+    document.getElementById('btn-limpar-dia').addEventListener('click', limparDia);
+    modalDia.addEventListener('click', function(e){ if (e.target === modalDia) fecharModalDia(); });
+
+    carregar();
+  } catch(err) {
+    alert('Erro fatal: ' + err.message);
+  }
+})();
+  </script>
+</body>
+</html>
