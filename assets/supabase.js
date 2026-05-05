@@ -86,7 +86,12 @@ async function fazerLogin(usuario, senha) {
 
 function fmtData(data) {
   if (!data) return '-';
-  const d = new Date(data);
+  // Trata data ISO pura (YYYY-MM-DD) como local pra evitar bug de timezone
+  if (/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    var p = data.split('-');
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+  var d = new Date(data);
   return d.toLocaleDateString('pt-BR');
 }
 
