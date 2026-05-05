@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Jimmy's Bar - American Bar autêntico em Londrina. Reservas: 43 98412-9883">
+  <title>Jimmy's Bar - American Bar Autêntico em Londrina</title>
+  <link rel="stylesheet" href="assets/styles.css?v=1">
+  <style>
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: var(--space-2xl) var(--space-md);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse at top, rgba(200, 16, 46, 0.1), transparent 70%),
+        linear-gradient(180deg, transparent, rgba(13, 13, 13, 0.95));
+      pointer-events: none;
+    }
+    .hero-stripes {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 8px;
+      display: flex;
+    }
+    .hero-stripes span { flex: 1; }
+    .hero-stripes span:nth-child(odd) { background: var(--color-red); }
+    .hero-stripes span:nth-child(even) { background: var(--color-cream); }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 800px;
+    }
+    .hero-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border: 1px solid var(--color-gold);
+      color: var(--color-gold);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      border-radius: var(--radius-full);
+      margin-bottom: var(--space-lg);
+    }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 12vw, 7rem);
+      letter-spacing: 0.05em;
+      line-height: 0.9;
+      color: var(--color-cream);
+      margin-bottom: var(--space-md);
+    }
+    .hero-title .red {
+      color: var(--color-red-bright);
+      font-style: italic;
+    }
+    .hero-tagline {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 1.25rem;
+      color: var(--color-gold);
+      margin-bottom: var(--space-xl);
+    }
+    .hero-info {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-2xl);
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+    .hero-info-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .hero-info-item strong { color: var(--color-cream); }
+    .hero-cta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-md);
+    }
+    .hero-decoration {
+      margin-top: var(--space-2xl);
+      font-size: 1.5rem;
+      letter-spacing: 1rem;
+      color: var(--color-gold);
+      opacity: 0.5;
+    }
+    .reservation-section {
+      background: var(--bg-secondary);
+      padding: var(--space-2xl) var(--space-md);
+      border-top: 1px solid var(--border-default);
+      border-bottom: 1px solid var(--border-default);
+    }
+    .reservation-card {
+      max-width: 560px;
+      margin: 0 auto;
+      text-align: center;
+      padding: var(--space-2xl) var(--space-lg);
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-lg);
+      border-top: 3px solid var(--color-red);
+    }
+    .reservation-phone {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      letter-spacing: 0.05em;
+      color: var(--color-cream);
+      margin: var(--space-md) 0;
+      display: block;
+      text-decoration: none;
+    }
+    .reservation-phone:hover { color: var(--color-red-bright); }
+  </style>
+</head>
+<body>
+  
+  <div class="hero">
+    <div class="hero-stripes">
+      <span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span>
+    </div>
+    
+    <div class="hero-content fade-in">
+      <span class="hero-badge">🇺🇸 American Bar Autêntico</span>
+      
+      <h1 class="hero-title">JIMMY<span class="red">'S</span></h1>
+      
+      <p class="hero-tagline">— Bons drinks, boa música, brasa no fogo —</p>
+      
+      <div class="hero-info">
+        <div class="hero-info-item">
+          <span>📍</span>
+          <strong>Londrina, PR</strong>
+        </div>
+        <div class="hero-info-item">
+          <span>🕐</span>
+          <strong>Ter a Sáb · 17h30</strong>
+        </div>
+        <div class="hero-info-item">
+          <span>🅿️</span>
+          <strong>Estacionamento</strong>
+        </div>
+      </div>
+      
+      <div class="hero-cta">
+        <a href="https://wa.me/5543984129883" class="btn btn-primary btn-lg" target="_blank">
+          📞 Fazer Reserva
+        </a>
+        <a href="https://instagram.com/jimmys.londrina" class="btn btn-secondary btn-lg" target="_blank">
+          📷 Instagram
+        </a>
+      </div>
+      
+      <div class="hero-decoration">★ ★ ★</div>
+    </div>
+  </div>
+  
+  <section class="reservation-section">
+    <div class="reservation-card">
+      <div class="hero-badge">Reservas</div>
+      <h2 class="title-display" style="margin-bottom: var(--space-md);">Garanta sua mesa</h2>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-lg);">
+        Faça sua reserva pelo WhatsApp ou Instagram.<br>
+        A gente te envia o link de cadastro com tudo certinho.
+      </p>
+      
+      <a href="tel:+5543984129883" class="reservation-phone">
+        43 98412-9883
+      </a>
+      
+      <div style="display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap; margin-top: var(--space-lg);">
+        <a href="https://wa.me/5543984129883?text=Ol%C3%A1!%20Quero%20fazer%20uma%20reserva%20no%20Jimmy's." 
+           class="btn btn-primary" target="_blank">
+          WhatsApp
+        </a>
+        <a href="https://instagram.com/jimmys.londrina" 
+           class="btn btn-gold" target="_blank">
+          Instagram
+        </a>
+      </div>
+    </div>
+  </section>
+  
+  <footer class="footer">
+    <div class="footer-flag">
+      <span class="footer-flag-stripe" style="background: var(--color-red);"></span>
+      <span class="footer-flag-stripe" style="background: var(--color-cream);"></span>
+      <span class="footer-flag-stripe" style="background: var(--color-navy);"></span>
+    </div>
+    <div>
+      © 2026 Jimmy's Bar · Londrina, PR<br>
+      Sistema de reservas <strong style="color: var(--color-gold);">ReserveX</strong>
+    </div>
+    <div style="margin-top: var(--space-md);">
+      <a href="login.html" style="color: var(--text-muted); font-size: 0.75rem;">Acesso administrativo</a>
+    </div>
+  </footer>
+  
+</body>
+</html>
