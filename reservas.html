@@ -42,6 +42,17 @@
     .cliente-encontrado { background: rgba(45, 106, 79, 0.15); border: 1px solid var(--color-success); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
     .cliente-novo-aviso { background: rgba(201, 151, 60, 0.1); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
     .step-title { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.05em; color: var(--color-gold); margin-bottom: var(--space-md); padding-bottom: 8px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
+    .mesa-pick-info { background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); display: flex; justify-content: space-between; align-items: center; }
+    .mesa-pick-info.tem { border-color: var(--color-success); background: rgba(45, 106, 79, 0.1); }
+    .setor-grupo { margin-bottom: var(--space-md); }
+    .setor-titulo { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .setor-pill { width: 10px; height: 10px; border-radius: 50%; }
+    .mesa-grid-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
+    .mesa-opt { padding: 10px 4px; background: var(--bg-tertiary); border: 2px solid var(--border-default); border-radius: var(--radius-md); cursor: pointer; text-align: center; }
+    .mesa-opt:active { transform: scale(0.97); }
+    .mesa-opt.sel { border-color: var(--color-gold); background: rgba(201, 151, 60, 0.15); }
+    .mesa-opt-nome { font-family: var(--font-display); font-size: 1.25rem; color: var(--color-cream); line-height: 1; }
+    .mesa-opt-cap { font-size: 0.625rem; color: var(--text-muted); margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -58,7 +69,7 @@
   </header>
   <main class="container fade-in">
     <h1 style="font-family: var(--font-display); margin-bottom: var(--space-sm);">Reservas</h1>
-    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Gerencie reservas, gere links e cadastre walk-ins.</p>
+    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Reservas, walk-ins e alocação de mesa.</p>
 
     <div class="stats-row">
       <div class="stat-pill"><div class="stat-pill-v" id="s-pend">—</div><div class="stat-pill-l">Pendentes</div></div>
@@ -70,7 +81,7 @@
     <div class="toolbar">
       <input type="date" id="data-filtro" class="form-input">
       <button type="button" class="btn btn-ghost btn-sm" id="btn-hoje">Hoje</button>
-      <button type="button" class="btn btn-primary btn-sm" id="btn-gerar-link">🔗 Gerar Link</button>
+      <button type="button" class="btn btn-primary btn-sm" id="btn-gerar-link">🔗 Link</button>
       <button type="button" class="btn btn-secondary btn-sm" id="btn-nova-manual">+ Manual</button>
     </div>
 
@@ -88,48 +99,42 @@
     <div id="lista-reservas"></div>
   </main>
 
-  <!-- Modal: Gerar Link -->
   <div class="modal-backdrop" id="modal-link">
     <div class="modal-box">
-      <div class="modal-header">
-        <div class="modal-title">🔗 Gerar Link de Reserva</div>
-        <button type="button" class="close-btn" id="btn-fechar-link">✕</button>
-      </div>
-      <p class="text-secondary" style="font-size: 0.875rem; margin-bottom: var(--space-md);">Gere um link único pra mandar pelo WhatsApp.</p>
+      <div class="modal-header"><div class="modal-title">🔗 Gerar Link</div><button type="button" class="close-btn" id="btn-fechar-link">✕</button></div>
       <div id="link-body">
-        <div class="form-group"><label class="form-label">Data da reserva *</label><input type="date" id="lf-data" class="form-input"></div>
-        <div class="form-group"><label class="form-label">Validade do link</label><select id="lf-validade" class="form-select"><option value="24">24 horas</option><option value="48">48 horas</option><option value="72">3 dias</option><option value="168" selected>7 dias</option><option value="0">Sem validade</option></select></div>
-        <button type="button" class="btn btn-primary btn-block" id="btn-criar-link">Gerar Link</button>
+        <div class="form-group"><label class="form-label">Data *</label><input type="date" id="lf-data" class="form-input"></div>
+        <div class="form-group"><label class="form-label">Validade</label><select id="lf-validade" class="form-select"><option value="24">24 horas</option><option value="48">48 horas</option><option value="72">3 dias</option><option value="168" selected>7 dias</option><option value="0">Sem validade</option></select></div>
+        <button type="button" class="btn btn-primary btn-block" id="btn-criar-link">Gerar</button>
       </div>
       <div id="link-resultado" style="display:none;">
         <div class="alert alert-success" style="font-size:0.875rem;">✓ Link gerado!</div>
         <div class="link-box" id="link-url"></div>
-        <button type="button" class="btn btn-gold btn-block" id="btn-copiar-link">📋 Copiar Link</button>
-        <button type="button" class="btn btn-secondary btn-block" id="btn-whatsapp-link" style="margin-top:8px;">💬 Abrir WhatsApp</button>
-        <button type="button" class="btn btn-ghost btn-block" id="btn-novo-link" style="margin-top:8px;">+ Gerar outro</button>
+        <button type="button" class="btn btn-gold btn-block" id="btn-copiar-link">📋 Copiar</button>
+        <button type="button" class="btn btn-secondary btn-block" id="btn-whatsapp-link" style="margin-top:8px;">💬 WhatsApp</button>
+        <button type="button" class="btn btn-ghost btn-block" id="btn-novo-link" style="margin-top:8px;">+ Outro</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Detalhes da reserva -->
   <div class="modal-backdrop" id="modal-reserva">
     <div class="modal-box">
-      <div class="modal-header">
-        <div class="modal-title" id="mr-titulo">Reserva</div>
-        <button type="button" class="close-btn" id="btn-fechar-reserva">✕</button>
-      </div>
+      <div class="modal-header"><div class="modal-title" id="mr-titulo">Reserva</div><button type="button" class="close-btn" id="btn-fechar-reserva">✕</button></div>
       <div id="mr-body"></div>
     </div>
   </div>
 
-  <!-- Modal: Reserva Manual / Walk-in -->
   <div class="modal-backdrop" id="modal-manual">
     <div class="modal-box">
-      <div class="modal-header">
-        <div class="modal-title">+ Reserva Manual</div>
-        <button type="button" class="close-btn" id="btn-fechar-manual">✕</button>
-      </div>
+      <div class="modal-header"><div class="modal-title">+ Reserva Manual</div><button type="button" class="close-btn" id="btn-fechar-manual">✕</button></div>
       <div id="manual-body"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-mesa-pick">
+    <div class="modal-box">
+      <div class="modal-header"><div class="modal-title">🪑 Escolher Mesa</div><button type="button" class="close-btn" id="btn-fechar-mesa-pick">✕</button></div>
+      <div id="mp-body"></div>
     </div>
   </div>
 
@@ -142,15 +147,21 @@
     if (!admin) return;
 
     var reservasCache = [];
+    var mesasCache = [];
+    var setoresCache = [];
     var dataFiltro = new Date().toISOString().split('T')[0];
     var statusFiltro = 'ativas';
     var reservaSelecionada = null;
     var clienteEncontrado = null;
-    var modoCadastro = 'busca'; // 'busca', 'novo'
+    var mesaSelecionadaForm = null;
+    var mesaPickerCallback = null;
+    var mesaPickerSelecionada = null;
+    var checkInDepoisDeMesa = false;
 
     var modalLink = document.getElementById('modal-link');
     var modalReserva = document.getElementById('modal-reserva');
     var modalManual = document.getElementById('modal-manual');
+    var modalMesaPick = document.getElementById('modal-mesa-pick');
 
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
@@ -158,24 +169,21 @@
         return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
       });
     }
-
     function fmtCpf(cpf) {
       if (!cpf) return '';
       var d = cpf.replace(/\D/g, '');
       if (d.length !== 11) return cpf;
-      return d.slice(0,3) + '.' + d.slice(3,6) + '.' + d.slice(6,9) + '-' + d.slice(9);
+      return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
     }
-
     function aplicarMascaraCPF(input) {
       input.addEventListener('input', function(){
         var v = input.value.replace(/\D/g, '').slice(0, 11);
-        if (v.length > 9) v = v.slice(0,3) + '.' + v.slice(3,6) + '.' + v.slice(6,9) + '-' + v.slice(9);
-        else if (v.length > 6) v = v.slice(0,3) + '.' + v.slice(3,6) + '.' + v.slice(6);
-        else if (v.length > 3) v = v.slice(0,3) + '.' + v.slice(3);
+        if (v.length > 9) v = v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6,9)+'-'+v.slice(9);
+        else if (v.length > 6) v = v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6);
+        else if (v.length > 3) v = v.slice(0,3)+'.'+v.slice(3);
         input.value = v;
       });
     }
-
     function aplicarMascaraTel(input) {
       input.addEventListener('input', function(){
         var v = input.value.replace(/\D/g, '').slice(0, 11);
@@ -190,6 +198,14 @@
 
     async function carregar() {
       try {
+        var s = await sb.from('setores').select('*').eq('tenant_id', TENANT_ID).eq('ativo', true).order('ordem');
+        if (s.error) throw new Error(s.error.message);
+        setoresCache = s.data || [];
+
+        var m = await sb.from('mesas').select('*').eq('tenant_id', TENANT_ID).eq('ativa', true).order('nome');
+        if (m.error) throw new Error(m.error.message);
+        mesasCache = m.data || [];
+
         var r = await sb.from('reservas')
           .select('*, clientes(nome_completo, telefone, instagram, cpf), mesas(nome), eventos(nome)')
           .eq('tenant_id', TENANT_ID)
@@ -197,10 +213,65 @@
           .order('created_at', { ascending: false });
         if (r.error) throw new Error(r.error.message);
         reservasCache = r.data || [];
+
         renderizar();
-      } catch(err) {
-        alert('Erro: ' + err.message);
-      }
+      } catch(err) { alert('Erro: ' + err.message); }
+    }
+
+    async function buscarReservasNaData(data) {
+      var r = await sb.from('reservas').select('mesa_id, status, id').eq('tenant_id', TENANT_ID).eq('data', data).in('status', ['pendente','confirmada','em_uso']);
+      return r.data || [];
+    }
+
+    async function abrirSeletorMesa(dataAlvo, ignorarReservaId, mesaAtualId, callback) {
+      mesaPickerCallback = callback;
+      mesaPickerSelecionada = mesaAtualId || null;
+      modalMesaPick.classList.add('active');
+      document.getElementById('mp-body').innerHTML = '<div class="empty"><div class="spinner" style="margin:0 auto;"></div></div>';
+
+      var reservasNaData = (dataAlvo === dataFiltro) ? reservasCache : await buscarReservasNaData(dataAlvo);
+      var ocupadas = reservasNaData.filter(function(r){ return r.mesa_id && r.id !== ignorarReservaId; }).map(function(r){ return r.mesa_id; });
+
+      var html = '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Mesas disponíveis para <strong>' + fmtData(dataAlvo) + '</strong>:</p>';
+      var temAlguma = false;
+
+      setoresCache.forEach(function(s){
+        var mesasSetor = mesasCache.filter(function(m){
+          return m.setor_id === s.id && ocupadas.indexOf(m.id) < 0 && m.status !== 'bloqueada';
+        });
+        if (mesasSetor.length === 0) return;
+        temAlguma = true;
+        html += '<div class="setor-grupo"><div class="setor-titulo"><span class="setor-pill" style="background:' + s.cor + '"></span>' + escapeHtml(s.nome) + '</div><div class="mesa-grid-pick">';
+        mesasSetor.forEach(function(m){
+          var sel = m.id === mesaPickerSelecionada ? 'sel' : '';
+          html += '<div class="mesa-opt ' + sel + '" data-id="' + m.id + '"><div class="mesa-opt-nome">' + escapeHtml(m.nome) + '</div><div class="mesa-opt-cap">' + m.capacidade + 'p</div></div>';
+        });
+        html += '</div></div>';
+      });
+
+      if (!temAlguma) html += '<div class="alert alert-warning" style="font-size:0.875rem;">Nenhuma mesa disponível.</div>';
+
+      html += '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
+        '<button type="button" class="btn btn-primary" id="mp-confirmar" style="flex:1;">✓ Confirmar</button>' +
+        '<button type="button" class="btn btn-ghost" id="mp-sem">Sem mesa</button>' +
+      '</div>';
+
+      document.getElementById('mp-body').innerHTML = html;
+      Array.prototype.forEach.call(document.querySelectorAll('.mesa-opt'), function(el){
+        el.addEventListener('click', function(){
+          Array.prototype.forEach.call(document.querySelectorAll('.mesa-opt'), function(x){ x.classList.remove('sel'); });
+          el.classList.add('sel');
+          mesaPickerSelecionada = el.dataset.id;
+        });
+      });
+      document.getElementById('mp-confirmar').addEventListener('click', function(){
+        modalMesaPick.classList.remove('active');
+        if (mesaPickerCallback) mesaPickerCallback(mesaPickerSelecionada);
+      });
+      document.getElementById('mp-sem').addEventListener('click', function(){
+        modalMesaPick.classList.remove('active');
+        if (mesaPickerCallback) mesaPickerCallback(null);
+      });
     }
 
     function renderizar() {
@@ -232,6 +303,7 @@
         var nome = r.clientes ? r.clientes.nome_completo : '(sem cliente — token pendente)';
         var tel = r.clientes ? fmtTelefone(r.clientes.telefone) : '';
         var statusLabel = r.status === 'em_uso' ? 'em uso' : r.status === 'no_show' ? 'no-show' : r.status;
+        var mesaLabel = r.mesas ? '🪑 ' + escapeHtml(r.mesas.nome) : '🪑 Sem mesa';
         html += '<div class="reserva-card ' + r.status + '" data-id="' + r.id + '">' +
           '<div class="reserva-row">' +
             '<div class="reserva-info">' +
@@ -239,7 +311,7 @@
               '<div class="reserva-meta">' +
                 '<span>👥 ' + r.qtd_pessoas + '</span>' +
                 (tel ? '<span>📞 ' + tel + '</span>' : '') +
-                (r.mesas ? '<span>🪑 ' + escapeHtml(r.mesas.nome) + '</span>' : '') +
+                '<span>' + mesaLabel + '</span>' +
                 (r.eventos ? '<span>🎤 ' + escapeHtml(r.eventos.nome) + '</span>' : '') +
                 '<span>📍 ' + r.origem + '</span>' +
               '</div>' +
@@ -249,7 +321,6 @@
         '</div>';
       });
       el.innerHTML = html;
-
       Array.prototype.forEach.call(el.querySelectorAll('.reserva-card'), function(card){
         card.addEventListener('click', function(){ abrirModalReserva(card.dataset.id); });
       });
@@ -262,7 +333,6 @@
       document.getElementById('link-resultado').style.display = 'none';
       modalLink.classList.add('active');
     }
-
     async function criarLink() {
       try {
         var data = document.getElementById('lf-data').value;
@@ -281,7 +351,6 @@
         document.getElementById('link-resultado').style.display = '';
       } catch(err) { alert('Erro: ' + err.message); }
     }
-
     function copiarLinkAgora(btn) {
       var url = document.getElementById('link-url').textContent;
       navigator.clipboard.writeText(url);
@@ -289,13 +358,11 @@
       btn.textContent = '✓ Copiado!';
       setTimeout(function(){ btn.textContent = orig; }, 1500);
     }
-
     function abrirWhatsappLink() {
       var url = document.getElementById('link-url').textContent;
       var msg = encodeURIComponent('Olá! 🇺🇸🔥\n\nFaz sua reserva no Jimmy\'s pelo link abaixo:\n\n' + url + '\n\n📞 43 98412-9883');
       window.open('https://wa.me/?text=' + msg, '_blank');
     }
-
     function novoLink() {
       document.getElementById('link-body').style.display = '';
       document.getElementById('link-resultado').style.display = 'none';
@@ -316,9 +383,20 @@
       var linkInfo = '';
       if (!r.clientes && r.token) {
         var url = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'cadastro.html?token=' + r.token;
-        linkInfo = '<div class="alert alert-warning" style="font-size:0.8125rem;"><strong>Token pendente</strong> — cliente ainda não preencheu</div>' +
+        linkInfo = '<div class="alert alert-warning" style="font-size:0.8125rem;"><strong>Token pendente</strong></div>' +
           '<div class="link-box" style="margin-bottom:8px;">' + escapeHtml(url) + '</div>' +
           '<button type="button" class="btn btn-gold acao-btn" id="btn-rec-copiar">📋 Copiar link</button>';
+      }
+
+      // Mesa
+      var mesaInfo = '';
+      var podeMudarMesa = ['pendente','confirmada','em_uso'].indexOf(r.status) >= 0 && r.clientes;
+      if (r.mesas) {
+        mesaInfo = '<div class="mesa-pick-info tem"><div><strong style="color:var(--color-cream);">🪑 Mesa ' + escapeHtml(r.mesas.nome) + '</strong></div>' +
+          (podeMudarMesa ? '<button type="button" class="btn btn-ghost btn-sm" id="btn-trocar-mesa">Trocar</button>' : '') + '</div>';
+      } else if (podeMudarMesa) {
+        mesaInfo = '<div class="mesa-pick-info"><div style="color:var(--color-warning);">⚠ Sem mesa atribuída</div>' +
+          '<button type="button" class="btn btn-gold btn-sm" id="btn-trocar-mesa">🪑 Alocar</button></div>';
       }
 
       var acoes = '';
@@ -327,7 +405,7 @@
         acoes += '<button type="button" class="btn btn-danger acao-btn" id="btn-cancelar">✗ Cancelar</button>';
       } else if (r.status === 'confirmada') {
         acoes += '<button type="button" class="btn btn-primary acao-btn" id="btn-checkin">✓ Check-in (em uso)</button>';
-        acoes += '<button type="button" class="btn btn-secondary acao-btn" id="btn-noshow">⊗ Marcar No-show</button>';
+        acoes += '<button type="button" class="btn btn-secondary acao-btn" id="btn-noshow">⊗ No-show</button>';
         acoes += '<button type="button" class="btn btn-danger acao-btn" id="btn-cancelar">✗ Cancelar</button>';
       } else if (r.status === 'em_uso') {
         acoes += '<button type="button" class="btn btn-primary acao-btn" id="btn-finalizar">✓ Finalizar</button>';
@@ -343,12 +421,21 @@
         '<div class="form-group"><label class="form-label">Pessoas</label><div>' + r.qtd_pessoas + '</div></div>' +
         '<div class="form-group"><label class="form-label">Status</label><div><span class="badge badge-' + (r.status === 'pendente' ? 'gold' : r.status === 'confirmada' ? 'green' : r.status === 'em_uso' ? 'blue' : 'gray') + '">' + statusLabel + '</span></div></div>' +
         (r.observacoes ? '<div class="form-group"><label class="form-label">Observações</label><div>' + escapeHtml(r.observacoes) + '</div></div>' : '') +
+        mesaInfo +
         '<div style="margin-top:var(--space-lg);">' + acoes + '</div>';
 
       var btnRec = document.getElementById('btn-rec-copiar');
       if (btnRec) btnRec.addEventListener('click', function(){
         navigator.clipboard.writeText(window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'cadastro.html?token=' + r.token);
         btnRec.textContent = '✓ Copiado';
+      });
+
+      var btnTM = document.getElementById('btn-trocar-mesa');
+      if (btnTM) btnTM.addEventListener('click', function(){
+        checkInDepoisDeMesa = false;
+        abrirSeletorMesa(r.data, r.id, r.mesa_id, function(novaMesaId){
+          alterarMesa(novaMesaId);
+        });
       });
 
       var bC = document.getElementById('btn-confirmar');
@@ -358,11 +445,38 @@
       var bN = document.getElementById('btn-noshow');
       if (bN) bN.addEventListener('click', function(){ if (confirm('Marcar como no-show?')) alterarStatus('no_show'); });
       var bU = document.getElementById('btn-checkin');
-      if (bU) bU.addEventListener('click', function(){ alterarStatus('em_uso'); });
+      if (bU) bU.addEventListener('click', function(){
+        if (!r.mesa_id) {
+          checkInDepoisDeMesa = true;
+          abrirSeletorMesa(r.data, r.id, null, function(novaMesaId){
+            if (novaMesaId) {
+              alterarMesa(novaMesaId, true);
+            } else {
+              toast('Escolha uma mesa pra fazer check-in', 'error');
+            }
+          });
+        } else {
+          alterarStatus('em_uso');
+        }
+      });
       var bF = document.getElementById('btn-finalizar');
       if (bF) bF.addEventListener('click', function(){ alterarStatus('finalizada'); });
 
       modalReserva.classList.add('active');
+    }
+
+    async function alterarMesa(mesaId, depoisFazerCheckin) {
+      if (!reservaSelecionada) return;
+      var resp = await sb.from('reservas').update({ mesa_id: mesaId }).eq('id', reservaSelecionada.id);
+      if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+      toast(mesaId ? 'Mesa atribuída ✓' : 'Mesa removida', 'success');
+      reservaSelecionada.mesa_id = mesaId;
+      if (depoisFazerCheckin) {
+        await alterarStatus('em_uso');
+      } else {
+        modalReserva.classList.remove('active');
+        carregar();
+      }
     }
 
     async function alterarStatus(novo) {
@@ -377,27 +491,20 @@
       carregar();
     }
 
-    // ===== RESERVA MANUAL / WALK-IN =====
+    // ===== RESERVA MANUAL =====
     function abrirModalManual() {
       clienteEncontrado = null;
-      modoCadastro = 'busca';
+      mesaSelecionadaForm = null;
       renderizarModalManual();
       modalManual.classList.add('active');
     }
 
     function renderizarModalManual() {
       var html = '<div class="step-title">1. Identificar cliente</div>' +
-        '<div class="form-group">' +
-          '<label class="form-label">Telefone</label>' +
-          '<input type="tel" id="busca-tel" class="form-input" inputmode="numeric" placeholder="(43) 99999-9999">' +
-        '</div>' +
-        '<div class="form-group">' +
-          '<label class="form-label">OU CPF</label>' +
-          '<input type="tel" id="busca-cpf" class="form-input" inputmode="numeric" placeholder="000.000.000-00">' +
-        '</div>' +
+        '<div class="form-group"><label class="form-label">Telefone</label><input type="tel" id="busca-tel" class="form-input" inputmode="numeric" placeholder="(43) 99999-9999"></div>' +
+        '<div class="form-group"><label class="form-label">OU CPF</label><input type="tel" id="busca-cpf" class="form-input" inputmode="numeric" placeholder="000.000.000-00"></div>' +
         '<button type="button" class="btn btn-gold btn-block" id="btn-buscar-cliente">🔍 Buscar Cliente</button>' +
-        '<div id="resultado-busca" style="margin-top:var(--space-md);"></div>' +
-      '</div>';
+        '<div id="resultado-busca" style="margin-top:var(--space-md);"></div>';
       document.getElementById('manual-body').innerHTML = html;
       aplicarMascaraTel(document.getElementById('busca-tel'));
       aplicarMascaraCPF(document.getElementById('busca-cpf'));
@@ -408,28 +515,22 @@
       var tel = document.getElementById('busca-tel').value.replace(/\D/g, '');
       var cpf = document.getElementById('busca-cpf').value.replace(/\D/g, '');
       var div = document.getElementById('resultado-busca');
-
       if (!tel && !cpf) { toast('Digite telefone ou CPF', 'error'); return; }
       if (tel && tel.length < 10) { toast('Telefone incompleto', 'error'); return; }
       if (cpf && cpf.length !== 11) { toast('CPF inválido', 'error'); return; }
-
       div.innerHTML = '<div class="spinner" style="margin: 0 auto;"></div>';
-
       try {
         var query = sb.from('clientes').select('*').eq('tenant_id', TENANT_ID).eq('ativo', true);
         if (cpf) query = query.eq('cpf', cpf);
         else query = query.eq('telefone', tel);
         var resp = await query.maybeSingle();
-
         if (resp.data) {
           clienteEncontrado = resp.data;
           mostrarClienteEncontrado();
         } else {
           mostrarFormularioNovo(tel, cpf);
         }
-      } catch(err) {
-        div.innerHTML = '<div class="alert alert-error">Erro: ' + err.message + '</div>';
-      }
+      } catch(err) { div.innerHTML = '<div class="alert alert-error">Erro: ' + err.message + '</div>'; }
     }
 
     function mostrarClienteEncontrado() {
@@ -448,7 +549,8 @@
         '<button type="button" class="btn btn-ghost" id="btn-trocar">Trocar</button>' +
       '</div>';
       document.getElementById('resultado-busca').innerHTML = html;
-      document.getElementById('btn-trocar').addEventListener('click', function(){ clienteEncontrado = null; renderizarModalManual(); });
+      ligarCamposReserva();
+      document.getElementById('btn-trocar').addEventListener('click', function(){ clienteEncontrado = null; mesaSelecionadaForm = null; renderizarModalManual(); });
       document.getElementById('btn-confirmar-reserva').addEventListener('click', function(){ salvarReserva(false); });
     }
 
@@ -470,16 +572,40 @@
       document.getElementById('resultado-busca').innerHTML = html;
       aplicarMascaraTel(document.getElementById('novo-tel'));
       aplicarMascaraCPF(document.getElementById('novo-cpf'));
-      document.getElementById('btn-trocar').addEventListener('click', function(){ renderizarModalManual(); });
+      ligarCamposReserva();
+      document.getElementById('btn-trocar').addEventListener('click', function(){ mesaSelecionadaForm = null; renderizarModalManual(); });
       document.getElementById('btn-cadastrar-tudo').addEventListener('click', function(){ salvarReserva(true); });
     }
 
     function camposReserva() {
-      return '<div class="step-title" style="margin-top:var(--space-lg);">' + (clienteEncontrado ? '2' : '3') + '. Dados da reserva</div>' +
+      var passo = clienteEncontrado ? '2' : '3';
+      var mesaTxt = mesaSelecionadaForm ? mesasCache.find(function(m){return m.id === mesaSelecionadaForm;}) : null;
+      var mesaHtml = mesaTxt
+        ? '<div class="mesa-pick-info tem"><div><strong style="color:var(--color-cream);">🪑 Mesa ' + escapeHtml(mesaTxt.nome) + '</strong></div><button type="button" class="btn btn-ghost btn-sm" id="btn-pick-mesa">Trocar</button></div>'
+        : '<div class="mesa-pick-info"><div style="color:var(--text-secondary);">🪑 Sem mesa</div><button type="button" class="btn btn-gold btn-sm" id="btn-pick-mesa">Escolher</button></div>';
+
+      return '<div class="step-title" style="margin-top:var(--space-lg);">' + passo + '. Dados da reserva</div>' +
         '<div class="form-group"><label class="form-label">Data *</label><input type="date" id="r-data" class="form-input" value="' + dataFiltro + '"></div>' +
         '<div class="form-group"><label class="form-label">Pessoas *</label><input type="number" id="r-pessoas" class="form-input" inputmode="numeric" min="1" value="2"></div>' +
         '<div class="form-group"><label class="form-label">Origem</label><select id="r-origem" class="form-select"><option value="walk_in">Walk-in (chegou na hora)</option><option value="telefone">Telefone</option><option value="instagram">Instagram</option><option value="manual">Manual</option></select></div>' +
-        '<div class="form-group"><label class="form-label">Observações</label><textarea id="r-obs" class="form-textarea" placeholder="Aniversário, alergias, preferência..."></textarea></div>';
+        '<div class="form-group"><label class="form-label">Mesa</label>' + mesaHtml + '</div>' +
+        '<div class="form-group"><label class="form-label">Observações</label><textarea id="r-obs" class="form-textarea" placeholder="Aniversário, alergias..."></textarea></div>';
+    }
+
+    function ligarCamposReserva() {
+      var btnPM = document.getElementById('btn-pick-mesa');
+      if (btnPM) btnPM.addEventListener('click', function(){
+        var data = document.getElementById('r-data').value;
+        abrirSeletorMesa(data, null, mesaSelecionadaForm, function(novaMesaId){
+          mesaSelecionadaForm = novaMesaId;
+          // Re-render apenas o bloco de mesa pra atualizar visual
+          if (clienteEncontrado) mostrarClienteEncontrado();
+          else mostrarFormularioNovo(
+            document.getElementById('novo-tel') ? document.getElementById('novo-tel').value.replace(/\D/g,'') : '',
+            document.getElementById('novo-cpf') ? document.getElementById('novo-cpf').value.replace(/\D/g,'') : ''
+          );
+        });
+      });
     }
 
     async function salvarReserva(cadastrarCliente) {
@@ -488,31 +614,21 @@
         var pessoas = parseInt(document.getElementById('r-pessoas').value, 10);
         var origem = document.getElementById('r-origem').value;
         var obs = document.getElementById('r-obs').value.trim();
-
         if (!data) { toast('Data inválida', 'error'); return; }
         if (!pessoas || pessoas < 1) { toast('Pessoas inválido', 'error'); return; }
-
         var clienteId;
-
         if (cadastrarCliente) {
           var nome = document.getElementById('novo-nome').value.trim();
           var tel = document.getElementById('novo-tel').value.replace(/\D/g, '');
           var cpf = document.getElementById('novo-cpf').value.replace(/\D/g, '');
           var ig = document.getElementById('novo-ig').value.trim();
-
           if (!nome || nome.length < 3) { toast('Nome obrigatório', 'error'); return; }
           if (!tel || tel.length < 10) { toast('Telefone inválido', 'error'); return; }
           if (cpf && cpf.length !== 11) { toast('CPF inválido', 'error'); return; }
-
           var novo = await sb.from('clientes').insert({
-            tenant_id: TENANT_ID,
-            nome_completo: nome,
-            telefone: tel,
-            cpf: cpf || null,
-            instagram: ig || null,
-            origem: origem === 'walk_in' ? 'walk_in' : 'manual'
+            tenant_id: TENANT_ID, nome_completo: nome, telefone: tel, cpf: cpf || null,
+            instagram: ig || null, origem: origem === 'walk_in' ? 'walk_in' : 'manual'
           }).select('id').maybeSingle();
-
           if (novo.error) {
             if (novo.error.code === '23505') { toast('Telefone ou CPF já cadastrado', 'error'); return; }
             throw new Error(novo.error.message);
@@ -521,27 +637,17 @@
         } else {
           clienteId = clienteEncontrado.id;
         }
-
         var resp = await sb.from('reservas').insert({
-          tenant_id: TENANT_ID,
-          cliente_id: clienteId,
-          data: data,
-          qtd_pessoas: pessoas,
-          status: 'confirmada',
-          origem: origem,
-          observacoes: obs || null,
-          criada_por: admin.id,
-          confirmada_por: admin.id
+          tenant_id: TENANT_ID, cliente_id: clienteId, data: data,
+          qtd_pessoas: pessoas, status: 'confirmada', origem: origem,
+          mesa_id: mesaSelecionadaForm || null,
+          observacoes: obs || null, criada_por: admin.id, confirmada_por: admin.id
         });
-
         if (resp.error) throw new Error(resp.error.message);
-
         toast(cadastrarCliente ? 'Cliente + reserva criados ✓' : 'Reserva criada ✓', 'success');
         modalManual.classList.remove('active');
         carregar();
-      } catch(err) {
-        toast('Erro: ' + err.message, 'error');
-      }
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
     }
 
     // ===== EVENTS =====
@@ -571,11 +677,10 @@
     document.getElementById('btn-nova-manual').addEventListener('click', abrirModalManual);
     document.getElementById('btn-fechar-manual').addEventListener('click', function(){ modalManual.classList.remove('active'); });
     modalManual.addEventListener('click', function(e){ if (e.target === modalManual) modalManual.classList.remove('active'); });
+    document.getElementById('btn-fechar-mesa-pick').addEventListener('click', function(){ modalMesaPick.classList.remove('active'); });
 
     carregar();
-  } catch(err) {
-    alert('Erro fatal: ' + err.message);
-  }
+  } catch(err) { alert('Erro fatal: ' + err.message); }
 })();
   </script>
 </body>
