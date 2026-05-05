@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reserva · Jimmy's Bar</title>
+  <link rel="stylesheet" href="assets/styles.css?v=1">
+  <script>
+    window.addEventListener('error', function(e) {
+      alert('ERRO: ' + e.message + '\nLinha: ' + (e.lineno || '?'));
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      alert('PROMISE: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
+    });
+  </script>
+  <style>
+    body { display: flex; min-height: 100vh; align-items: flex-start; justify-content: center; padding: var(--space-md); }
+    .cadastro-wrap { width: 100%; max-width: 480px; padding: var(--space-lg) 0; }
+    .header-stripes { display: flex; gap: 2px; margin-bottom: var(--space-lg); justify-content: center; }
+    .header-stripes span { width: 24px; height: 3px; }
+    .header-stripes span:nth-child(1) { background: var(--color-red); }
+    .header-stripes span:nth-child(2) { background: var(--color-cream); }
+    .header-stripes span:nth-child(3) { background: var(--color-navy); }
+    .logo { font-family: var(--font-display); font-size: 3rem; letter-spacing: 0.05em; line-height: 1; color: var(--color-cream); text-align: center; margin-bottom: var(--space-sm); }
+    .logo .red { color: var(--color-red-bright); font-style: italic; }
+    .subtitle { font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-gold); text-align: center; margin-bottom: var(--space-xl); }
+    .info-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-top: 3px solid var(--color-red); border-radius: var(--radius-lg); padding: var(--space-lg); margin-bottom: var(--space-lg); }
+    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-default); }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--text-muted); font-size: 0.875rem; }
+    .info-value { color: var(--color-cream); font-weight: 600; font-size: 0.875rem; }
+    .form-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-lg); padding: var(--space-lg); }
+    .center-state { text-align: center; padding: var(--space-2xl) var(--space-md); }
+    .state-icon { font-size: 3rem; margin-bottom: var(--space-md); }
+    .footer-mini { text-align: center; margin-top: var(--space-xl); font-size: 0.75rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="cadastro-wrap fade-in">
+
+    <div class="header-stripes">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="logo">JIMMY<span class="red">'S</span></div>
+    <div class="subtitle">Sua reserva</div>
+
+    <div id="conteudo">
+      <div class="center-state">
+        <div class="spinner" style="margin: 0 auto;"></div>
+        <p style="margin-top: var(--space-md); color: var(--text-secondary);">Validando seu link...</p>
+      </div>
+    </div>
+
+    <div class="footer-mini">
+      📞 Reservas: 43 98412-9883<br>
+      📍 @jimmys.londrina
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=1"></script>
+  <script>
+(function(){
+  try {
+    var conteudo = document.getElementById('conteudo');
+
+    var token = new URLSearchParams(window.location.search).get('token');
+    if (!token) {
+      mostrarErro('Link inválido. Solicite um novo link de reserva pelo WhatsApp do Jimmy\'s.');
+      return;
+    }
+
+    var reserva = null;
+    var diaConfig = null;
+    var evento = null;
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+    }
+
+    function mostrarErro(msg) {
+      conteudo.innerHTML = '<div class="center-state">' +
+        '<div class="state-icon">🚫</div>' +
+        '<h3 style="color:var(--color-cream);margin-bottom:var(--space-md);">Link inválido</h3>' +
+        '<p style="color:var(--text-secondary);">' + escapeHtml(msg) + '</p>' +
+        '<a href="https://wa.me/5543984129883" class="btn btn-primary" style="margin-top:var(--space-lg);">📞 Falar com o Jimmy\'s</a>' +
+      '</div>';
+    }
+
+    function mostrarSucesso() {
+      conteudo.innerHTML = '<div class="center-state">' +
+        '<div class="state-icon">🇺🇸🔥</div>' +
+        '<h3 style="color:var(--color-cream);margin-bottom:var(--space-md);">Reserva enviada!</h3>' +
+        '<p style="color:var(--text-secondary);margin-bottom:var(--space-md);">Recebemos seus dados. Em breve a gente confirma sua reserva pelo WhatsApp.</p>' +
+        '<div class="alert alert-success" style="font-size:0.875rem;text-align:left;">✓ ' + escapeHtml(reserva.nome) + '<br>✓ ' + fmtData(reserva.data) + '<br>✓ ' + reserva.pessoas + ' pessoa(s)</div>' +
+        '<a href="https://wa.me/5543984129883" class="btn btn-gold" style="margin-top:var(--space-md);">📞 Falar com o Jimmy\'s</a>' +
+      '</div>';
+    }
+
+    async function validarToken() {
+      try {
+        var r = await sb.from('reservas')
+          .select('id, data, qtd_pessoas, status, expira_em, evento_id, cliente_id')
+          .eq('token', token)
+          .eq('tenant_id', TENANT_ID)
+          .maybeSingle();
+
+        if (r.error) throw new Error(r.error.message);
+        if (!r.data) { mostrarErro('Link não encontrado. Solicite um novo.'); return; }
+
+        reserva = r.data;
+
+        if (reserva.cliente_id) {
+          mostrarErro('Este link já foi usado. Solicite um novo se precisar.');
+          return;
+        }
+
+        if (reserva.status === 'cancelada') {
+          mostrarErro('Esta reserva foi cancelada. Solicite um novo link.');
+          return;
+        }
+
+        if (reserva.expira_em && new Date(reserva.expira_em) < new Date()) {
+          mostrarErro('Este link expirou. Solicite um novo pelo WhatsApp.');
+          return;
+        }
+
+        // Carrega config do dia
+        var c = await sb.from('dias_config').select('*').eq('tenant_id', TENANT_ID).eq('data', reserva.data).maybeSingle();
+        if (!c.error) diaConfig = c.data;
+
+        if (diaConfig && diaConfig.status === 'fechado') {
+          mostrarErro('Esse dia está fechado para reservas. Tenta outra data.');
+          return;
+        }
+
+        // Carrega evento se houver
+        if (reserva.evento_id) {
+          var e = await sb.from('eventos').select('*').eq('id', reserva.evento_id).maybeSingle();
+          if (!e.error) evento = e.data;
+        }
+
+        renderizarForm();
+      } catch(err) {
+        mostrarErro('Erro ao validar: ' + err.message);
+      }
+    }
+
+    function renderizarForm() {
+      var infoBoxes = '<div class="info-card">' +
+        '<div class="info-row"><span class="info-label">📅 Data</span><span class="info-value">' + fmtData(reserva.data) + '</span></div>' +
+        (diaConfig && diaConfig.horario_abertura ? '<div class="info-row"><span class="info-label">🕐 Abertura</span><span class="info-value">' + diaConfig.horario_abertura.substring(0,5) + '</span></div>' : '') +
+        (diaConfig && diaConfig.horario_limite ? '<div class="info-row"><span class="info-label">⏰ Horário-limite</span><span class="info-value">até ' + diaConfig.horario_limite.substring(0,5) + '</span></div>' : '') +
+        (diaConfig && diaConfig.couvert_valor > 0 ? '<div class="info-row"><span class="info-label">🎫 Couvert</span><span class="info-value">R$ ' + parseFloat(diaConfig.couvert_valor).toFixed(2).replace('.', ',') + '/pessoa</span></div>' : '') +
+        (evento ? '<div class="info-row"><span class="info-label">🎤 Evento</span><span class="info-value">' + escapeHtml(evento.nome) + '</span></div>' : '') +
+      '</div>';
+
+      conteudo.innerHTML = infoBoxes +
+        '<div class="form-card">' +
+          '<h3 style="color:var(--color-cream);margin-bottom:var(--space-md);">Seus dados</h3>' +
+          '<div class="form-group"><label class="form-label">Nome completo *</label><input type="text" id="f-nome" class="form-input" placeholder="Seu nome completo"></div>' +
+          '<div class="form-group"><label class="form-label">Telefone (WhatsApp) *</label><input type="tel" id="f-telefone" class="form-input" inputmode="numeric" placeholder="(43) 99999-9999"></div>' +
+          '<div class="form-group"><label class="form-label">Instagram</label><input type="text" id="f-instagram" class="form-input" placeholder="@seu_user"></div>' +
+          '<div class="form-group"><label class="form-label">Quantas pessoas vão? *</label><input type="number" id="f-pessoas" class="form-input" inputmode="numeric" min="1" max="50" value="' + (reserva.qtd_pessoas || 2) + '"></div>' +
+          '<div class="form-group"><label class="form-label">Aniversário (opcional)</label><input type="date" id="f-nasc" class="form-input"></div>' +
+          '<div class="form-group"><label class="form-label">Observação</label><textarea id="f-obs" class="form-textarea" placeholder="Aniversário? Alergias? Pedido especial?"></textarea></div>' +
+          '<div id="msg-erro"></div>' +
+          '<button type="button" class="btn btn-primary btn-block btn-lg" id="btn-enviar" style="margin-top:var(--space-md);">🇺🇸 Confirmar Reserva</button>' +
+        '</div>';
+
+      document.getElementById('btn-enviar').addEventListener('click', enviar);
+    }
+
+    function mostrarErroForm(msg) {
+      document.getElementById('msg-erro').innerHTML = '<div class="alert alert-error" style="margin-top:var(--space-md);font-size:0.875rem;">' + escapeHtml(msg) + '</div>';
+    }
+
+    async function enviar() {
+      var btn = document.getElementById('btn-enviar');
+      try {
+        var nome = document.getElementById('f-nome').value.trim();
+        var telefone = document.getElementById('f-telefone').value.replace(/\D/g, '');
+        var instagram = document.getElementById('f-instagram').value.trim();
+        var pessoas = parseInt(document.getElementById('f-pessoas').value, 10);
+        var nasc = document.getElementById('f-nasc').value || null;
+        var obs = document.getElementById('f-obs').value.trim();
+
+        if (!nome || nome.length < 3) { mostrarErroForm('Nome completo é obrigatório.'); return; }
+        if (!telefone || telefone.length < 10) { mostrarErroForm('Telefone inválido. Use DDD + número.'); return; }
+        if (!pessoas || pessoas < 1) { mostrarErroForm('Quantidade de pessoas inválida.'); return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;display:inline-block;vertical-align:middle;"></span> Enviando...';
+        document.getElementById('msg-erro').innerHTML = '';
+
+        // 1. Cria/encontra cliente pelo telefone
+        var existe = await sb.from('clientes').select('id').eq('tenant_id', TENANT_ID).eq('telefone', telefone).maybeSingle();
+        var clienteId;
+
+        if (existe.data) {
+          clienteId = existe.data.id;
+          // Atualiza dados que possam estar mais recentes
+          await sb.from('clientes').update({
+            nome_completo: nome,
+            instagram: instagram || null,
+            data_nascimento: nasc
+          }).eq('id', clienteId);
+        } else {
+          var novo = await sb.from('clientes').insert({
+            tenant_id: TENANT_ID,
+            nome_completo: nome,
+            telefone: telefone,
+            instagram: instagram || null,
+            data_nascimento: nasc,
+            origem: 'direto'
+          }).select('id').maybeSingle();
+          if (novo.error) throw new Error(novo.error.message);
+          clienteId = novo.data.id;
+        }
+
+        // 2. Atualiza a reserva com cliente + dados
+        var upd = await sb.from('reservas').update({
+          cliente_id: clienteId,
+          qtd_pessoas: pessoas,
+          observacoes: obs || null,
+          status: 'pendente'
+        }).eq('id', reserva.id);
+
+        if (upd.error) throw new Error(upd.error.message);
+
+        reserva.nome = nome;
+        reserva.pessoas = pessoas;
+        mostrarSucesso();
+      } catch(err) {
+        btn.disabled = false;
+        btn.innerHTML = '🇺🇸 Confirmar Reserva';
+        mostrarErroForm('Erro ao enviar: ' + err.message);
+      }
+    }
+
+    validarToken();
+  } catch(err) {
+    alert('Erro fatal: ' + err.message);
+  }
+})();
+  </script>
+</body>
+</html>
