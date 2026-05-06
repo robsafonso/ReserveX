@@ -43,9 +43,15 @@
     .mesa-grid-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
     .mesa-opt { padding: 10px 4px; background: var(--bg-tertiary); border: 2px solid var(--border-default); border-radius: var(--radius-md); cursor: pointer; text-align: center; }
     .mesa-opt:active { transform: scale(0.97); }
-    .mesa-opt.sel { border-color: var(--color-gold); background: rgba(201, 151, 60, 0.15); }
+    .mesa-opt.ideal { border-color: var(--color-success); background: rgba(45, 106, 79, 0.08); }
+    .mesa-opt.apertado { border-color: var(--color-warning); background: rgba(201, 151, 60, 0.06); }
+    .mesa-opt.sel { border-color: var(--color-gold) !important; background: rgba(201, 151, 60, 0.25) !important; }
     .mesa-opt-nome { font-family: var(--font-display); font-size: 1.25rem; color: var(--color-cream); line-height: 1; }
     .mesa-opt-cap { font-size: 0.625rem; color: var(--text-muted); margin-top: 4px; }
+    .mesa-opt.apertado .mesa-opt-cap { color: var(--color-warning); }
+    .legenda-cores { display: flex; gap: var(--space-md); font-size: 0.75rem; color: var(--text-muted); margin-bottom: var(--space-md); flex-wrap: wrap; }
+    .legenda-item { display: flex; align-items: center; gap: 6px; }
+    .legenda-dot { width: 12px; height: 12px; border-radius: 3px; border: 2px solid; }
   </style>
 </head>
 <body>
@@ -78,7 +84,6 @@
     <div id="lista-fila"></div>
   </main>
 
-  <!-- Modal: Adicionar à fila -->
   <div class="modal-backdrop" id="modal-novo">
     <div class="modal-box">
       <div class="modal-header"><div class="modal-title">+ Adicionar à Fila</div><button type="button" class="close-btn" id="btn-fechar-novo">✕</button></div>
@@ -86,7 +91,6 @@
     </div>
   </div>
 
-  <!-- Modal: Alocar mesa -->
   <div class="modal-backdrop" id="modal-mesa">
     <div class="modal-box">
       <div class="modal-header"><div class="modal-title">🪑 Alocar Mesa</div><button type="button" class="close-btn" id="btn-fechar-mesa">✕</button></div>
@@ -198,7 +202,6 @@
       });
     }
 
-    // ===== ADICIONAR À FILA =====
     function abrirNovo() {
       clienteEncontrado = null;
       renderizarNovo();
@@ -312,33 +315,46 @@
       } catch(err) { toast('Erro: ' + err.message, 'error'); }
     }
 
-    // ===== ALOCAR MESA =====
+    // ===== ALOCAR MESA (com cores) =====
     function abrirAlocarMesa(filaId) {
       filaSelecionada = filaCache.find(function(f){return f.id === filaId;});
       if (!filaSelecionada) return;
       mesaPickerSelecionada = null;
 
+      var qtd = filaSelecionada.qtd_pessoas;
       var ocupadas = reservasHoje.filter(function(r){return r.mesa_id;}).map(function(r){return r.mesa_id;});
 
-      var html = '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Cliente: <strong style="color:var(--color-cream);">' + escapeHtml(filaSelecionada.clientes.nome_completo) + '</strong> · ' + filaSelecionada.qtd_pessoas + ' pessoa(s)</p>' +
-        '<p style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:var(--space-md);">Mesas livres com capacidade ≥ ' + filaSelecionada.qtd_pessoas + ':</p>';
+      var html = '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Cliente: <strong style="color:var(--color-cream);">' + escapeHtml(filaSelecionada.clientes.nome_completo) + '</strong> · ' + qtd + ' pessoa(s)</p>' +
+        '<div class="legenda-cores">' +
+          '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-success)"></span>Cabe folgado (≥' + qtd + ')</div>' +
+          '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-warning)"></span>Apertado (puxar cadeira)</div>' +
+        '</div>';
+
       var temAlguma = false;
 
       setoresCache.forEach(function(s){
         var mesasSetor = mesasCache.filter(function(m){
-          return m.setor_id === s.id && ocupadas.indexOf(m.id) < 0 && m.status !== 'bloqueada' && m.capacidade >= filaSelecionada.qtd_pessoas;
+          return m.setor_id === s.id && ocupadas.indexOf(m.id) < 0 && m.status !== 'bloqueada';
+        });
+        // Ordena: ideais primeiro
+        mesasSetor.sort(function(a,b){
+          var aIdeal = a.capacidade >= qtd ? 0 : 1;
+          var bIdeal = b.capacidade >= qtd ? 0 : 1;
+          if (aIdeal !== bIdeal) return aIdeal - bIdeal;
+          return (a.nome || '').localeCompare(b.nome || '');
         });
         if (mesasSetor.length === 0) return;
         temAlguma = true;
         html += '<div class="setor-grupo"><div class="setor-titulo"><span class="setor-pill" style="background:' + s.cor + '"></span>' + escapeHtml(s.nome) + '</div><div class="mesa-grid-pick">';
         mesasSetor.forEach(function(m){
-          html += '<div class="mesa-opt" data-id="' + m.id + '"><div class="mesa-opt-nome">' + escapeHtml(m.nome) + '</div><div class="mesa-opt-cap">' + m.capacidade + 'p</div></div>';
+          var classe = m.capacidade >= qtd ? 'ideal' : 'apertado';
+          html += '<div class="mesa-opt ' + classe + '" data-id="' + m.id + '"><div class="mesa-opt-nome">' + escapeHtml(m.nome) + '</div><div class="mesa-opt-cap">' + m.capacidade + 'p</div></div>';
         });
         html += '</div></div>';
       });
 
       if (!temAlguma) {
-        html += '<div class="alert alert-warning" style="font-size:0.875rem;">Nenhuma mesa livre com capacidade pra ' + filaSelecionada.qtd_pessoas + ' pessoas. Aguarde liberar.</div>';
+        html += '<div class="alert alert-warning" style="font-size:0.875rem;">Nenhuma mesa livre no momento.</div>';
       }
 
       html += '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
@@ -364,7 +380,6 @@
     async function confirmarAlocacao() {
       if (!mesaPickerSelecionada || !filaSelecionada) return;
       try {
-        // 1. Cria reserva confirmada + em_uso (cliente já sentou)
         var hoje = new Date().toISOString().split('T')[0];
         var resReserva = await sb.from('reservas').insert({
           tenant_id: TENANT_ID,
@@ -380,7 +395,6 @@
         }).select('id').maybeSingle();
         if (resReserva.error) throw new Error(resReserva.error.message);
 
-        // 2. Atualiza fila pra alocado
         var resFila = await sb.from('fila_espera').update({
           status: 'alocado',
           mesa_id: mesaPickerSelecionada,
@@ -406,7 +420,6 @@
       carregar();
     }
 
-    // ===== EVENTS =====
     document.getElementById('btn-novo').addEventListener('click', abrirNovo);
     document.getElementById('btn-refresh').addEventListener('click', carregar);
     document.getElementById('btn-fechar-novo').addEventListener('click', function(){ modalNovo.classList.remove('active'); });
@@ -415,7 +428,6 @@
     modalMesa.addEventListener('click', function(e){ if (e.target === modalMesa) modalMesa.classList.remove('active'); });
 
     carregar();
-    // Atualiza tempos a cada 30s
     atualizadorTempo = setInterval(function(){ if (filaCache.length) renderizar(); }, 30000);
 
   } catch(err) { alert('Erro fatal: ' + err.message); }
