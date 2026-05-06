@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Clientes · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=2">
+  <link rel="stylesheet" href="assets/styles.css?v=3">
   <script>
     window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
     window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
@@ -46,7 +46,7 @@
     <div class="topbar-inner">
       <a href="home.html" class="brand">
         <div class="brand-logo">JIMMY<strong>'S</strong></div>
-        <span class="brand-badge">v1.0</span>
+        <span class="brand-badge">v1.1</span>
       </a>
       <div class="user-menu">
         <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
@@ -100,7 +100,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=2"></script>
+  <script src="assets/supabase.js?v=3"></script>
   <script>
 (function(){
   try {
@@ -320,7 +320,7 @@
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
-      a.download = 'clientes-jimmys-' + new Date().toISOString().split('T')[0] + '.csv';
+      a.download = 'clientes-jimmys-' + hojeISO() + '.csv';
       a.click();
       URL.revokeObjectURL(url);
       toast('CSV exportado ✓', 'success');
