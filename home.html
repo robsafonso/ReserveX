@@ -3,219 +3,165 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=1">
+  <title>Dashboard · ReserveX · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=2">
+  <script>
+    window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
+  </script>
+  <style>
+    .saudacao { font-family: var(--font-display); font-size: 1.75rem; color: var(--color-cream); margin-bottom: 4px; }
+    .saudacao .red { color: var(--color-red-bright); font-style: italic; }
+    .data-hoje { font-size: 0.875rem; color: var(--text-muted); margin-bottom: var(--space-xl); text-transform: capitalize; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); margin-bottom: var(--space-xl); }
+    @media (min-width: 600px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } }
+    .kpi { background: var(--bg-secondary); border: 1px solid var(--border-default); border-top: 3px solid var(--color-red); border-radius: var(--radius-md); padding: var(--space-md); text-align: center; }
+    .kpi-v { font-family: var(--font-display); font-size: 2rem; line-height: 1; color: var(--color-cream); }
+    .kpi-l { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 6px; }
+    .kpi.gold { border-top-color: var(--color-gold); }
+    .kpi.green { border-top-color: var(--color-success); }
+    .kpi.blue { border-top-color: var(--color-info); }
+    .secao-titulo { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.08em; color: var(--color-gold); margin: var(--space-xl) 0 var(--space-md); padding-bottom: 8px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
+    .atalhos { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); }
+    @media (min-width: 600px) { .atalhos { grid-template-columns: repeat(3, 1fr); } }
+    .atalho { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-lg) var(--space-md); text-align: center; text-decoration: none; color: var(--color-cream); display: flex; flex-direction: column; align-items: center; gap: 8px; transition: all 0.15s; min-height: 110px; justify-content: center; }
+    .atalho:active { transform: scale(0.97); border-color: var(--color-red); }
+    .atalho-icon { font-size: 2rem; line-height: 1; }
+    .atalho-nome { font-family: var(--font-display); font-size: 0.9375rem; letter-spacing: 0.05em; }
+    .atalho-desc { font-family: var(--font-body); font-size: 0.6875rem; color: var(--text-muted); letter-spacing: 0; text-transform: none; line-height: 1.3; }
+    .atalho.destaque { border-color: var(--color-gold); background: linear-gradient(135deg, var(--bg-secondary), rgba(201, 151, 60, 0.08)); }
+  </style>
 </head>
 <body>
-  
   <header class="topbar">
     <div class="topbar-inner">
       <a href="home.html" class="brand">
         <div class="brand-logo">JIMMY<strong>'S</strong></div>
         <span class="brand-badge">v1.0</span>
       </a>
-      
       <div class="user-menu">
-        <div class="user-info">
-          <strong id="admin-nome">—</strong><br>
-          <small id="admin-nivel">—</small>
-        </div>
-        <button class="btn btn-ghost btn-sm" id="btn-logout">Sair</button>
+        <span id="user-nome" style="font-size:0.8125rem;color:var(--text-secondary);"></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-logout">Sair</button>
       </div>
     </div>
   </header>
-  
+
   <main class="container fade-in">
-    
-    <div style="margin-bottom: var(--space-xl);">
-      <h1 style="font-family: var(--font-display); letter-spacing: 0.03em;">
-        Boa <span id="periodo-dia">noite</span>!
-      </h1>
-      <p class="text-secondary">Aqui está o resumo do Jimmy's hoje.</p>
+    <h1 class="saudacao" id="saudacao">Bem-vindo<span class="red">.</span></h1>
+    <p class="data-hoje" id="data-hoje"></p>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-v" id="kpi-reservas">—</div><div class="kpi-l">Reservas hoje</div></div>
+      <div class="kpi blue"><div class="kpi-v" id="kpi-uso">—</div><div class="kpi-l">Em uso agora</div></div>
+      <div class="kpi gold"><div class="kpi-v" id="kpi-fila">—</div><div class="kpi-l">Na fila</div></div>
+      <div class="kpi green"><div class="kpi-v" id="kpi-clientes">—</div><div class="kpi-l">Clientes total</div></div>
     </div>
-    
-    <section class="section">
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-label">Reservas hoje</div>
-          <div class="stat-value" id="stat-reservas">—</div>
-          <div class="stat-meta" id="stat-reservas-meta">Carregando...</div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-label">Pessoas esperadas</div>
-          <div class="stat-value" id="stat-pessoas">—</div>
-          <div class="stat-meta">Confirmadas + em uso</div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-label">Taxa de ocupação</div>
-          <div class="stat-value" id="stat-ocupacao">—</div>
-          <div class="stat-meta">Mesas reservadas / disponíveis</div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-label">Total de clientes</div>
-          <div class="stat-value" id="stat-clientes">—</div>
-          <div class="stat-meta">Na base do CRM</div>
-        </div>
-      </div>
-    </section>
-    
-    <section class="section">
-      <h2 class="section-title">Operação</h2>
-      <div class="nav-grid">
-        <a href="reservas.html" class="nav-tile">
-          <span class="nav-tile-icon">📋</span>
-          <div class="nav-tile-label">Reservas</div>
-          <div class="nav-tile-desc">Gerenciar bookings</div>
-        </a>
-        
-        <a href="mapa.html" class="nav-tile">
-          <span class="nav-tile-icon">🗺️</span>
-          <div class="nav-tile-label">Mapa</div>
-          <div class="nav-tile-desc">Visão das mesas</div>
-        </a>
-        
-        <a href="clientes.html" class="nav-tile">
-          <span class="nav-tile-icon">👥</span>
-          <div class="nav-tile-label">Clientes</div>
-          <div class="nav-tile-desc">CRM e histórico</div>
-        </a>
-        
-        <a href="calendario.html" class="nav-tile">
-          <span class="nav-tile-icon">📅</span>
-          <div class="nav-tile-label">Calendário</div>
-          <div class="nav-tile-desc">Configurar dias</div>
-        </a>
-        
-        <a href="eventos.html" class="nav-tile">
-          <span class="nav-tile-icon">🎤</span>
-          <div class="nav-tile-label">Eventos</div>
-          <div class="nav-tile-desc">Atrações e shows</div>
-        </a>
-        
-        <a href="mensagens.html" class="nav-tile">
-          <span class="nav-tile-icon">💬</span>
-          <div class="nav-tile-label">Mensagens</div>
-          <div class="nav-tile-desc">Templates WhatsApp</div>
-        </a>
-      </div>
-    </section>
-    
-    <section class="section" id="section-config" style="display:none;">
-      <h2 class="section-title">Configuração</h2>
-      <div class="nav-grid">
-        <a href="config.html" class="nav-tile">
-          <span class="nav-tile-icon">⚙️</span>
-          <div class="nav-tile-label">Setores e Mesas</div>
-          <div class="nav-tile-desc">Estrutura física</div>
-        </a>
-        
-        <a href="admins.html" class="nav-tile">
-          <span class="nav-tile-icon">🔐</span>
-          <div class="nav-tile-label">Usuários</div>
-          <div class="nav-tile-desc">Equipe do sistema</div>
-        </a>
-        
-        <a href="auditoria.html" class="nav-tile">
-          <span class="nav-tile-icon">📊</span>
-          <div class="nav-tile-label">Auditoria</div>
-          <div class="nav-tile-desc">Log de ações</div>
-        </a>
-      </div>
-    </section>
-    
-    <div class="alert alert-info">
-      <strong>🚧 Sistema em construção</strong> — você está vendo a Fase 1 do ReserveX.
-      Várias telas ainda serão entregues nas próximas fases.
+
+    <div class="secao-titulo">⚡ Operação</div>
+    <div class="atalhos">
+      <a href="reservas.html" class="atalho destaque">
+        <div class="atalho-icon">📋</div>
+        <div class="atalho-nome">RESERVAS</div>
+        <div class="atalho-desc">Gerar links · walk-in</div>
+      </a>
+      <a href="fila.html" class="atalho destaque">
+        <div class="atalho-icon">🕐</div>
+        <div class="atalho-nome">FILA</div>
+        <div class="atalho-desc">Espera por mesa</div>
+      </a>
+      <a href="mapa.html" class="atalho destaque">
+        <div class="atalho-icon">🗺️</div>
+        <div class="atalho-nome">MAPA</div>
+        <div class="atalho-desc">Mesas em tempo real</div>
+      </a>
+      <a href="clientes.html" class="atalho">
+        <div class="atalho-icon">👥</div>
+        <div class="atalho-nome">CLIENTES</div>
+        <div class="atalho-desc">CRM · histórico</div>
+      </a>
+      <a href="calendario.html" class="atalho">
+        <div class="atalho-icon">📅</div>
+        <div class="atalho-nome">CALENDÁRIO</div>
+        <div class="atalho-desc">Configura dias</div>
+      </a>
+      <a href="#" class="atalho" style="opacity:0.5;pointer-events:none;">
+        <div class="atalho-icon">🎤</div>
+        <div class="atalho-nome">EVENTOS</div>
+        <div class="atalho-desc">Em breve</div>
+      </a>
     </div>
-    
+
+    <div class="secao-titulo" id="secao-config" style="display:none;">⚙️ Configuração (master)</div>
+    <div class="atalhos" id="atalhos-config" style="display:none;">
+      <a href="config.html" class="atalho">
+        <div class="atalho-icon">🪑</div>
+        <div class="atalho-nome">SETORES E MESAS</div>
+        <div class="atalho-desc">Cadastra estrutura</div>
+      </a>
+      <a href="#" class="atalho" style="opacity:0.5;pointer-events:none;">
+        <div class="atalho-icon">💬</div>
+        <div class="atalho-nome">MENSAGENS</div>
+        <div class="atalho-desc">Em breve</div>
+      </a>
+      <a href="#" class="atalho" style="opacity:0.5;pointer-events:none;">
+        <div class="atalho-icon">👤</div>
+        <div class="atalho-nome">USUÁRIOS</div>
+        <div class="atalho-desc">Em breve</div>
+      </a>
+    </div>
   </main>
-  
-  <footer class="footer">
-    <div>
-      ReserveX v1.0 · Jimmy's Bar · Londrina, PR<br>
-      <span style="color: var(--color-gold);">🇺🇸 American Bar Autêntico 🔥</span>
-    </div>
-  </footer>
-  
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=1"></script>
+  <script src="assets/supabase.js?v=2"></script>
   <script>
-    const admin = exigirLogin();
-    if (!admin) throw new Error('Não logado');
-    
-    const hora = new Date().getHours();
-    document.getElementById('periodo-dia').textContent = 
-      hora < 6 ? 'noite' :
-      hora < 12 ? 'dia' :
-      hora < 18 ? 'tarde' : 'noite';
-    
-    document.getElementById('admin-nome').textContent = admin.nome;
-    document.getElementById('admin-nivel').textContent = admin.nivel;
-    
+(function(){
+  try {
+    var admin = exigirLogin();
+    if (!admin) return;
+
+    var primNome = (admin.nome || 'Você').split(' ')[0];
+    document.getElementById('user-nome').textContent = primNome + ' · ' + admin.nivel;
+    document.getElementById('saudacao').innerHTML = 'Olá, ' + primNome + '<span class="red">.</span>';
+
+    var hoje = new Date();
+    var diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+    var meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    document.getElementById('data-hoje').textContent = diasSemana[hoje.getDay()] + ', ' + hoje.getDate() + ' de ' + meses[hoje.getMonth()] + ' de ' + hoje.getFullYear();
+
     if (admin.nivel === 'master') {
-      document.getElementById('section-config').style.display = '';
+      document.getElementById('secao-config').style.display = '';
+      document.getElementById('atalhos-config').style.display = 'grid';
     }
-    
-    document.getElementById('btn-logout').addEventListener('click', () => {
+
+    document.getElementById('btn-logout').addEventListener('click', function(){
       if (confirm('Sair do sistema?')) logout();
     });
-    
-    async function carregarStats() {
+
+    async function carregarKPIs() {
       try {
-        const hoje = new Date().toISOString().split('T')[0];
-        
-        const { count: countReservas } = await sb
-          .from('reservas')
-          .select('*', { count: 'exact', head: true })
-          .eq('tenant_id', TENANT_ID)
-          .eq('data', hoje)
-          .in('status', ['pendente', 'confirmada', 'em_uso']);
-        
-        document.getElementById('stat-reservas').textContent = countReservas ?? 0;
-        document.getElementById('stat-reservas-meta').textContent = 
-          countReservas === 0 ? 'Nenhuma reserva ainda' : `${countReservas} confirmadas/em uso`;
-        
-        const { data: reservas } = await sb
-          .from('reservas')
-          .select('qtd_pessoas')
-          .eq('tenant_id', TENANT_ID)
-          .eq('data', hoje)
-          .in('status', ['pendente', 'confirmada', 'em_uso']);
-        
-        const totalPessoas = (reservas || []).reduce((s, r) => s + (r.qtd_pessoas || 0), 0);
-        document.getElementById('stat-pessoas').textContent = totalPessoas;
-        
-        const { count: countClientes } = await sb
-          .from('clientes')
-          .select('*', { count: 'exact', head: true })
-          .eq('tenant_id', TENANT_ID)
-          .eq('ativo', true);
-        
-        document.getElementById('stat-clientes').textContent = countClientes ?? 0;
-        
-        const { count: totalMesas } = await sb
-          .from('mesas')
-          .select('*', { count: 'exact', head: true })
-          .eq('tenant_id', TENANT_ID)
-          .eq('ativa', true);
-        
-        const ocupacao = totalMesas > 0 
-          ? Math.round((countReservas / totalMesas) * 100)
-          : 0;
-        document.getElementById('stat-ocupacao').textContent = ocupacao + '%';
-        
-      } catch (err) {
-        console.error('Erro ao carregar stats:', err);
-        ['stat-reservas', 'stat-pessoas', 'stat-ocupacao', 'stat-clientes']
-          .forEach(id => document.getElementById(id).textContent = '—');
-      }
+        var hojeStr = new Date().toISOString().split('T')[0];
+
+        var r = await sb.from('reservas').select('id, status')
+          .eq('tenant_id', TENANT_ID).eq('data', hojeStr);
+        if (!r.error) {
+          var ativas = (r.data || []).filter(function(x){ return ['pendente','confirmada','em_uso'].indexOf(x.status) >= 0; });
+          var emUso = (r.data || []).filter(function(x){ return x.status === 'em_uso'; });
+          document.getElementById('kpi-reservas').textContent = ativas.length;
+          document.getElementById('kpi-uso').textContent = emUso.length;
+        }
+
+        var f = await sb.from('fila_espera').select('id', { count: 'exact', head: true })
+          .eq('tenant_id', TENANT_ID).eq('status', 'aguardando');
+        document.getElementById('kpi-fila').textContent = f.count || 0;
+
+        var c = await sb.from('clientes').select('id', { count: 'exact', head: true })
+          .eq('tenant_id', TENANT_ID).eq('ativo', true);
+        document.getElementById('kpi-clientes').textContent = c.count || 0;
+      } catch(err) {}
     }
-    
-    carregarStats();
+
+    carregarKPIs();
+  } catch(err) { alert('Erro fatal: ' + err.message); }
+})();
   </script>
-  
 </body>
 </html>
