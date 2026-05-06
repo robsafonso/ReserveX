@@ -60,6 +60,7 @@
     .legenda-item { display: flex; align-items: center; gap: 6px; }
     .legenda-dot { width: 12px; height: 12px; border-radius: 3px; border: 2px solid; }
     .evento-disponivel { background: linear-gradient(135deg, rgba(200,16,46,0.15), rgba(201,151,60,0.15)); border: 1px solid var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
   </style>
 </head>
 <body>
@@ -110,8 +111,12 @@
     <div class="modal-box">
       <div class="modal-header"><div class="modal-title">🔗 Gerar Link</div><button type="button" class="close-btn" id="btn-fechar-link">✕</button></div>
       <div id="link-body">
-        <div class="form-group"><label class="form-label">Data *</label><input type="date" id="lf-data" class="form-input"></div>
+        <div class="row-2">
+          <div class="form-group"><label class="form-label">Data *</label><input type="date" id="lf-data" class="form-input"></div>
+          <div class="form-group"><label class="form-label">Pessoas *</label><input type="number" id="lf-pessoas" class="form-input" inputmode="numeric" min="1" value="2"></div>
+        </div>
         <div class="form-group"><label class="form-label">Validade</label><select id="lf-validade" class="form-select"><option value="24">24 horas</option><option value="48">48 horas</option><option value="72">3 dias</option><option value="168" selected>7 dias</option><option value="0">Sem validade</option></select></div>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:var(--space-md);">💡 Dica: defina a quantidade que o cliente combinou. Se mudar depois, você ajusta direto na reserva.</p>
         <button type="button" class="btn btn-primary btn-block" id="btn-criar-link">Gerar</button>
       </div>
       <div id="link-resultado" style="display:none;">
@@ -332,6 +337,7 @@
 
     function abrirModalLink() {
       document.getElementById('lf-data').value = dataFiltro;
+      document.getElementById('lf-pessoas').value = 2;
       document.getElementById('link-body').style.display = '';
       document.getElementById('link-resultado').style.display = 'none';
       modalLink.classList.add('active');
@@ -339,12 +345,14 @@
     async function criarLink() {
       try {
         var data = document.getElementById('lf-data').value;
+        var pessoas = parseInt(document.getElementById('lf-pessoas').value, 10);
         var horas = parseInt(document.getElementById('lf-validade').value, 10);
         if (!data) { toast('Escolha uma data', 'error'); return; }
+        if (!pessoas || pessoas < 1) { toast('Pessoas inválido (mínimo 1)', 'error'); return; }
         var token = gerarToken(20);
         var expiraEm = horas > 0 ? new Date(Date.now() + horas * 3600 * 1000).toISOString() : null;
         var dadosLink = {
-          tenant_id: TENANT_ID, data: data, qtd_pessoas: 1, status: 'pendente',
+          tenant_id: TENANT_ID, data: data, qtd_pessoas: pessoas, status: 'pendente',
           origem: 'direto', token: token, expira_em: expiraEm, criada_por: admin.id
         };
         var evs = eventosNaData(data);
@@ -359,11 +367,7 @@
     }
     function copiarLinkAgora(btn) {
       var url = document.getElementById('link-url').textContent;
-      navigator.clipboard.writeText(url);
-      var orig = btn.textContent;
-      btn.textContent = '✓ Copiado!';
-      btn.classList.add('btn-success');
-      setTimeout(function(){ btn.textContent = orig; btn.classList.remove('btn-success'); }, 1500);
+      copiarTexto(url, btn);
     }
     function abrirWhatsappLink() {
       var url = document.getElementById('link-url').textContent;
@@ -389,7 +393,7 @@
       var linkInfo = '';
       if (!r.clientes && r.token) {
         var url = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'cadastro.html?token=' + r.token;
-        linkInfo = '<div class="alert alert-warning" style="font-size:0.8125rem;"><strong>Token pendente</strong></div>' +
+        linkInfo = '<div class="alert alert-warning" style="font-size:0.8125rem;"><strong>Token pendente</strong> · ' + r.qtd_pessoas + ' pessoa(s)</div>' +
           '<div class="link-box" style="margin-bottom:8px;">' + escapeHtml(url) + '</div>' +
           '<button type="button" class="btn btn-gold acao-btn" id="btn-rec-copiar">📋 Copiar link</button>';
       }
@@ -436,7 +440,7 @@
         (cpf ? '<div class="form-group"><label class="form-label">CPF</label><div>' + fmtCpf(cpf) + '</div></div>' : '') +
         (ig ? '<div class="form-group"><label class="form-label">Instagram</label><div>' + escapeHtml(ig) + '</div></div>' : '') +
         '<div class="form-group"><label class="form-label">Data</label><div>' + fmtData(r.data) + '</div></div>' +
-        '<div class="form-group"><label class="form-label">Pessoas</label><div>' + r.qtd_pessoas + '</div></div>' +
+        '<div class="form-group"><label class="form-label">Pessoas</label><div>' + r.qtd_pessoas + (podeMudarMesa ? ' <button type="button" class="btn btn-ghost btn-sm" id="btn-mudar-qtd" style="margin-left:8px;">Mudar</button>' : '') + '</div></div>' +
         '<div class="form-group"><label class="form-label">Status</label><div><span class="badge badge-' + (r.status === 'pendente' ? 'gold' : r.status === 'confirmada' ? 'green' : r.status === 'em_uso' ? 'blue' : 'gray') + '">' + statusLabel + '</span></div></div>' +
         (r.observacoes ? '<div class="form-group"><label class="form-label">Observações</label><div>' + escapeHtml(r.observacoes) + '</div></div>' : '') +
         eventoInfo + mesaInfo +
@@ -452,6 +456,15 @@
         abrirSeletorMesa(r.data, r.id, r.mesa_id, r.qtd_pessoas, function(novaMesaId){
           alterarMesa(novaMesaId);
         });
+      });
+
+      var btnQtd = document.getElementById('btn-mudar-qtd');
+      if (btnQtd) btnQtd.addEventListener('click', function(){
+        var nova = prompt('Nova quantidade de pessoas:', r.qtd_pessoas);
+        if (nova === null) return;
+        var n = parseInt(nova, 10);
+        if (!n || n < 1) { toast('Quantidade inválida', 'error'); return; }
+        alterarQtd(n);
       });
 
       Array.prototype.forEach.call(document.querySelectorAll('button[data-vincular-ev]'), function(b){
@@ -477,6 +490,15 @@
       if (bF) bF.addEventListener('click', function(){ alterarStatus('finalizada'); });
 
       modalReserva.classList.add('active');
+    }
+
+    async function alterarQtd(novaQtd) {
+      if (!reservaSelecionada) return;
+      var resp = await sb.from('reservas').update({ qtd_pessoas: novaQtd }).eq('id', reservaSelecionada.id);
+      if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+      toast('Quantidade atualizada ✓', 'success');
+      modalReserva.classList.remove('active');
+      carregar();
     }
 
     async function vincularEvento(eventoId) {
