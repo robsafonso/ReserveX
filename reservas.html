@@ -345,7 +345,7 @@
         var expiraEm = horas > 0 ? new Date(Date.now() + horas * 3600 * 1000).toISOString() : null;
         var dadosLink = {
           tenant_id: TENANT_ID, data: data, qtd_pessoas: 1, status: 'pendente',
-          origem: 'manual', token: token, expira_em: expiraEm, criada_por: admin.id
+          origem: 'direto', token: token, expira_em: expiraEm, criada_por: admin.id
         };
         var evs = eventosNaData(data);
         if (evs.length > 0) dadosLink.evento_id = evs[0].id;
@@ -616,7 +616,7 @@
       return '<div class="step-title" style="margin-top:var(--space-lg);">' + passo + '. Dados da reserva</div>' +
         '<div class="form-group"><label class="form-label">Data *</label><input type="date" id="r-data" class="form-input" value="' + dataAtual + '"></div>' +
         '<div class="form-group"><label class="form-label">Pessoas *</label><input type="number" id="r-pessoas" class="form-input" inputmode="numeric" min="1" value="2"></div>' +
-        '<div class="form-group"><label class="form-label">Origem</label><select id="r-origem" class="form-select"><option value="walk_in">Walk-in (chegou na hora)</option><option value="telefone">Telefone</option><option value="instagram">Instagram</option><option value="manual">Manual</option></select></div>' +
+        '<div class="form-group"><label class="form-label">Origem</label><select id="r-origem" class="form-select"><option value="walk_in">Walk-in (chegou na hora)</option><option value="telefone">Telefone</option><option value="instagram">Instagram</option><option value="direto">Direto (recepção)</option></select></div>' +
         eventoHtml +
         '<div class="form-group"><label class="form-label">Mesa</label>' + mesaHtml + '</div>' +
         '<div class="form-group"><label class="form-label">Observações</label><textarea id="r-obs" class="form-textarea" placeholder="Aniversário, alergias..."></textarea></div>';
