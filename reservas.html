@@ -153,16 +153,23 @@
     var admin = exigirLogin();
     if (!admin) return;
 
+    // FIX timezone: hoje no horário LOCAL (não UTC)
+    function hojeISO() {
+      var d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+
     var reservasCache = [];
     var mesasCache = [];
     var setoresCache = [];
     var eventosCache = [];
-    var dataFiltro = new Date().toISOString().split('T')[0];
+    var dataFiltro = hojeISO();
     var statusFiltro = 'ativas';
     var reservaSelecionada = null;
     var clienteEncontrado = null;
     var mesaSelecionadaForm = null;
     var eventoSelecionadoForm = null;
+    var dataReservaForm = null;
     var mesaPickerCallback = null;
     var mesaPickerSelecionada = null;
     var mesaPickerQtd = 1;
@@ -346,7 +353,6 @@
           tenant_id: TENANT_ID, data: data, qtd_pessoas: 1, status: 'pendente',
           origem: 'manual', token: token, expira_em: expiraEm, criada_por: admin.id
         };
-        // Se tem evento na data, vincula automaticamente ao primeiro
         var evs = eventosNaData(data);
         if (evs.length > 0) dadosLink.evento_id = evs[0].id;
         var resp = await sb.from('reservas').insert(dadosLink);
@@ -514,7 +520,7 @@
       clienteEncontrado = null;
       mesaSelecionadaForm = null;
       eventoSelecionadoForm = null;
-      // Pre-seleciona evento se houver na data filtrada
+      dataReservaForm = dataFiltro;
       var evs = eventosNaData(dataFiltro);
       if (evs.length === 1) eventoSelecionadoForm = evs[0].id;
       renderizarModalManual();
@@ -602,7 +608,7 @@
         ? '<div class="mesa-pick-info tem"><div><strong style="color:var(--color-cream);">🪑 Mesa ' + escapeHtml(mesaTxt.nome) + '</strong></div><button type="button" class="btn btn-ghost btn-sm" id="btn-pick-mesa">Trocar</button></div>'
         : '<div class="mesa-pick-info"><div style="color:var(--text-secondary);">🪑 Sem mesa</div><button type="button" class="btn btn-gold btn-sm" id="btn-pick-mesa">Escolher</button></div>';
 
-      var dataAtual = document.getElementById('r-data') ? document.getElementById('r-data').value : dataFiltro;
+      var dataAtual = dataReservaForm || dataFiltro;
       var evs = eventosNaData(dataAtual);
       var eventoHtml = '';
       if (evs.length > 0) {
@@ -614,7 +620,7 @@
       }
 
       return '<div class="step-title" style="margin-top:var(--space-lg);">' + passo + '. Dados da reserva</div>' +
-        '<div class="form-group"><label class="form-label">Data *</label><input type="date" id="r-data" class="form-input" value="' + dataFiltro + '"></div>' +
+        '<div class="form-group"><label class="form-label">Data *</label><input type="date" id="r-data" class="form-input" value="' + dataAtual + '"></div>' +
         '<div class="form-group"><label class="form-label">Pessoas *</label><input type="number" id="r-pessoas" class="form-input" inputmode="numeric" min="1" value="2"></div>' +
         '<div class="form-group"><label class="form-label">Origem</label><select id="r-origem" class="form-select"><option value="walk_in">Walk-in (chegou na hora)</option><option value="telefone">Telefone</option><option value="instagram">Instagram</option><option value="manual">Manual</option></select></div>' +
         eventoHtml +
@@ -640,6 +646,8 @@
       if (rEv) rEv.addEventListener('change', function(){ eventoSelecionadoForm = rEv.value || null; });
       var rData = document.getElementById('r-data');
       if (rData) rData.addEventListener('change', function(){
+        // FIX: salva nova data antes de re-renderizar
+        dataReservaForm = rData.value;
         eventoSelecionadoForm = null;
         var evs = eventosNaData(rData.value);
         if (evs.length === 1) eventoSelecionadoForm = evs[0].id;
@@ -695,7 +703,7 @@
 
     document.getElementById('data-filtro').addEventListener('change', function(e){ dataFiltro = e.target.value; carregar(); });
     document.getElementById('btn-hoje').addEventListener('click', function(){
-      dataFiltro = new Date().toISOString().split('T')[0];
+      dataFiltro = hojeISO();
       document.getElementById('data-filtro').value = dataFiltro;
       carregar();
     });
