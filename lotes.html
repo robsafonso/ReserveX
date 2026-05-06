@@ -164,16 +164,20 @@
     }
 
     function abrirNovo() {
+      var preEvento = new URLSearchParams(window.location.search).get('evento') || '';
+      var preData = new URLSearchParams(window.location.search).get('data') || hojeISO();
+
       var eventosOptions = '<option value="">Sem evento (dia normal)</option>';
       eventosCache.forEach(function(e){
-        eventosOptions += '<option value="' + e.id + '" data-data="' + e.data + '">' + escapeHtml(e.nome) + ' · ' + fmtData(e.data) + '</option>';
+        var sel = (e.id === preEvento) ? ' selected' : '';
+        eventosOptions += '<option value="' + e.id + '" data-data="' + e.data + '"' + sel + '>' + escapeHtml(e.nome) + ' · ' + fmtData(e.data) + '</option>';
       });
 
       document.getElementById('novo-body').innerHTML =
         '<div class="form-group"><label class="form-label">Nome do lote *</label><input type="text" id="f-nome" class="form-input" placeholder="Ex: Convidados Bday Carta"></div>' +
         '<div class="form-group"><label class="form-label">Evento (opcional)</label><select id="f-evento" class="form-select">' + eventosOptions + '</select></div>' +
         '<div class="row-2">' +
-          '<div class="form-group"><label class="form-label">Data *</label><input type="date" id="f-data" class="form-input" value="' + hojeISO() + '"></div>' +
+          '<div class="form-group"><label class="form-label">Data *</label><input type="date" id="f-data" class="form-input" value="' + preData + '"></div>' +
           '<div class="form-group"><label class="form-label">Qtd de convites *</label><input type="number" id="f-qtd" class="form-input" inputmode="numeric" min="1" max="500" value="30"></div>' +
         '</div>' +
         '<div class="form-group"><label class="form-label">Validade do link (dias)</label><select id="f-validade" class="form-select"><option value="0">Sem validade</option><option value="1">1 dia</option><option value="3">3 dias</option><option value="7" selected>7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option></select></div>' +
@@ -208,7 +212,6 @@
 
         var expiraEm = validade > 0 ? new Date(Date.now() + validade * 24 * 3600 * 1000).toISOString() : null;
 
-        // 1. Cria o lote
         var lote = await sb.from('lotes').insert({
           tenant_id: TENANT_ID,
           evento_id: eventoId,
@@ -225,7 +228,6 @@
         if (lote.error) throw new Error(lote.error.message);
         var loteId = lote.data.id;
 
-        // 2. Gera os N convites
         var convites = [];
         for (var i = 1; i <= qtd; i++) {
           convites.push({
@@ -242,7 +244,6 @@
 
         toast('🎟️ Lote criado com ' + qtd + ' convites ✓', 'success');
         modal.classList.remove('active');
-        // Vai direto pra detalhes
         window.location.href = 'lote_detalhes.html?id=' + loteId;
       } catch(err) {
         toast('Erro: ' + err.message, 'error');
@@ -266,7 +267,12 @@
     });
     modal.addEventListener('click', function(e){ if (e.target === modal) modal.classList.remove('active'); });
 
-    carregar();
+    carregar().then(function(){
+      // Se veio de evento_detalhes com ?evento=, abre direto o modal de novo lote
+      if (new URLSearchParams(window.location.search).get('evento')) {
+        setTimeout(abrirNovo, 200);
+      }
+    });
   } catch(err) { alert('Erro fatal: ' + err.message); }
 })();
   </script>
