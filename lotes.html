@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lotes · ReserveX · Jimmy's</title>
   <link rel="stylesheet" href="assets/styles.css?v=3">
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
   <script>
     window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
     window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
@@ -37,6 +38,13 @@
     .empty { text-align: center; padding: var(--space-2xl) var(--space-md); color: var(--text-muted); }
     .empty-icon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.4; }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+    .step-divider { font-family: var(--font-display); font-size: 0.875rem; letter-spacing: 0.08em; color: var(--color-gold); margin: var(--space-lg) 0 var(--space-md); padding-bottom: 6px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
+    .senha-input-wrap { display: flex; gap: 6px; }
+    .senha-input-wrap input { flex: 1; font-family: monospace; letter-spacing: 0.1em; font-size: 1.0625rem; }
+    .credencial-box { background: var(--bg-tertiary); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+    .credencial-label { font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.08em; margin-bottom: 4px; }
+    .credencial-valor { font-family: monospace; color: var(--color-cream); font-size: 1.125rem; word-break: break-all; }
+    .credencial-valor.senha { font-size: 1.5rem; letter-spacing: 0.15em; color: var(--color-gold); }
   </style>
 </head>
 <body>
@@ -53,7 +61,7 @@
   </header>
   <main class="container fade-in">
     <h1 style="font-family: var(--font-display); margin-bottom: var(--space-sm);">🎟️ Lotes de Convites</h1>
-    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Gere convites em massa pra eventos e dias especiais.</p>
+    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Convites pra eventos, distribuídos por responsáveis (promotores).</p>
 
     <div class="stats-row">
       <div class="stat-pill"><div class="stat-pill-v" id="s-ativos">—</div><div class="stat-pill-l">Lotes ativos</div></div>
@@ -78,12 +86,9 @@
 
   <div class="modal-backdrop" id="modal-novo">
     <div class="modal-box">
-      <div class="modal-header"><div class="modal-title">+ Novo Lote</div><button type="button" class="close-btn" id="btn-fechar">✕</button></div>
+      <div class="modal-header"><div class="modal-title" id="mn-titulo">+ Novo Lote</div><button type="button" class="close-btn" id="btn-fechar">✕</button></div>
       <div id="novo-body"></div>
-      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">
-        <button type="button" class="btn btn-primary" id="btn-criar" style="flex:1;">🎟️ Criar Lote + Gerar Convites</button>
-        <button type="button" class="btn btn-secondary" id="btn-cancelar">Cancelar</button>
-      </div>
+      <div id="novo-sucesso" style="display:none;"></div>
     </div>
   </div>
 
@@ -95,12 +100,21 @@
     var admin = exigirLogin();
     if (!admin) return;
 
+    var BCRYPT = (window.dcodeIO && window.dcodeIO.bcrypt) || window.bcrypt;
+
     var lotesCache = [];
     var eventosCache = [];
     var filtroAtivo = 'ativos';
     var modal = document.getElementById('modal-novo');
 
     function escapeHtml(s){if(s==null)return ''; return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+    function gerarSenhaSimples() {
+      var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      var s = '';
+      for (var i = 0; i < 6; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+      return s;
+    }
 
     async function carregar() {
       try {
@@ -145,6 +159,7 @@
               '<div class="lote-meta">' +
                 '<span>📅 ' + fmtData(l.data_evento) + '</span>' +
                 (l.eventos ? '<span>🎤 ' + escapeHtml(l.eventos.nome) + '</span>' : '') +
+                (l.responsavel_nome ? '<span>👤 ' + escapeHtml(l.responsavel_nome) + '</span>' : '') +
                 '<span>🎟️ ' + l.usados + ' / ' + l.total_convites + '</span>' +
               '</div>' +
               '<div class="progresso-bar"><div class="progresso-fill" style="width:' + perc + '%"></div></div>' +
@@ -162,6 +177,9 @@
     }
 
     function abrirNovo() {
+      document.getElementById('mn-titulo').textContent = '+ Novo Lote';
+      document.getElementById('novo-sucesso').style.display = 'none';
+
       var preEvento = new URLSearchParams(window.location.search).get('evento') || '';
       var preData = new URLSearchParams(window.location.search).get('data') || hojeISO();
 
@@ -171,21 +189,52 @@
         eventosOptions += '<option value="' + e.id + '" data-data="' + e.data + '"' + sel + '>' + escapeHtml(e.nome) + ' · ' + fmtData(e.data) + '</option>';
       });
 
+      var senhaAuto = gerarSenhaSimples();
+
       document.getElementById('novo-body').innerHTML =
-        '<div class="form-group"><label class="form-label">Nome do lote *</label><input type="text" id="f-nome" class="form-input" placeholder="Ex: Convidados Bday Carta"></div>' +
+        '<div class="form-group"><label class="form-label">Nome do lote *</label><input type="text" id="f-nome" class="form-input" placeholder="Ex: Convidados Bday Carla"></div>' +
         '<div class="form-group"><label class="form-label">Evento (opcional)</label><select id="f-evento" class="form-select">' + eventosOptions + '</select></div>' +
         '<div class="row-2">' +
           '<div class="form-group"><label class="form-label">Data *</label><input type="date" id="f-data" class="form-input" value="' + preData + '"></div>' +
-          '<div class="form-group"><label class="form-label">Qtd de convites *</label><input type="number" id="f-qtd" class="form-input" inputmode="numeric" min="1" max="500" value="30"></div>' +
+          '<div class="form-group"><label class="form-label">Qtd convites *</label><input type="number" id="f-qtd" class="form-input" inputmode="numeric" min="1" max="500" value="30"></div>' +
         '</div>' +
-        '<div class="form-group"><label class="form-label">Validade do link (dias)</label><select id="f-validade" class="form-select"><option value="0">Sem validade</option><option value="1">1 dia</option><option value="3">3 dias</option><option value="7" selected>7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option></select></div>' +
-        '<div class="form-group"><label class="form-label">Descrição</label><textarea id="f-desc" class="form-textarea" placeholder="Anota algo pra lembrar depois (ex: lista da Maria)"></textarea></div>';
+        '<div class="form-group"><label class="form-label">Validade do link</label><select id="f-validade" class="form-select"><option value="0">Sem validade</option><option value="1">1 dia</option><option value="3">3 dias</option><option value="7" selected>7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option></select></div>' +
+
+        '<div class="step-divider">👤 Responsável (opcional)</div>' +
+        '<div class="form-group"><label class="form-label">Nome do responsável</label><input type="text" id="f-resp-nome" class="form-input" placeholder="Ex: Carlos Promoter"></div>' +
+        '<div class="form-group"><label class="form-label">Senha do painel</label>' +
+          '<div class="senha-input-wrap">' +
+            '<input type="text" id="f-resp-senha" class="form-input" value="' + senhaAuto + '">' +
+            '<button type="button" class="btn btn-ghost" id="btn-gerar-senha">🎲</button>' +
+          '</div>' +
+        '</div>' +
+        '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:-8px;margin-bottom:var(--space-md);">💡 Sem responsável, só o master gerencia esse lote.</p>' +
+
+        '<div class="step-divider">🎫 Bilhete</div>' +
+        '<div class="form-group"><label class="form-label">Bilhete fica visível</label><select id="f-bilhete-dias" class="form-select"><option value="0" selected>Imediato (após cadastro)</option><option value="3">3 dias antes do evento</option><option value="5">5 dias antes do evento</option><option value="7">7 dias antes do evento</option><option value="10">10 dias antes do evento</option><option value="15">15 dias antes do evento</option></select></div>' +
+
+        '<div class="step-divider">📝 Detalhes</div>' +
+        '<div class="form-group"><label class="form-label">Descrição</label><textarea id="f-desc" class="form-textarea" placeholder="Anota algo pra lembrar depois (ex: lista da Maria)"></textarea></div>' +
+
+        '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
+          '<button type="button" class="btn btn-primary" id="btn-criar" style="flex:1;">🎟️ Criar Lote + Gerar Convites</button>' +
+          '<button type="button" class="btn btn-secondary" id="btn-cancelar">Cancelar</button>' +
+        '</div>';
+
+      document.getElementById('novo-body').style.display = '';
 
       var fEv = document.getElementById('f-evento');
       fEv.addEventListener('change', function(){
         var sel = fEv.options[fEv.selectedIndex];
         if (sel && sel.dataset.data) document.getElementById('f-data').value = sel.dataset.data;
       });
+
+      document.getElementById('btn-gerar-senha').addEventListener('click', function(){
+        document.getElementById('f-resp-senha').value = gerarSenhaSimples();
+      });
+
+      document.getElementById('btn-criar').addEventListener('click', criarLote);
+      document.getElementById('btn-cancelar').addEventListener('click', function(){ modal.classList.remove('active'); });
 
       modal.classList.add('active');
     }
@@ -198,15 +247,25 @@
         var qtd = parseInt(document.getElementById('f-qtd').value, 10);
         var validade = parseInt(document.getElementById('f-validade').value, 10);
         var desc = document.getElementById('f-desc').value.trim();
+        var respNome = document.getElementById('f-resp-nome').value.trim();
+        var respSenha = document.getElementById('f-resp-senha').value.trim();
+        var bilheteDias = parseInt(document.getElementById('f-bilhete-dias').value, 10) || 0;
 
         if (!nome) { toast('Nome obrigatório', 'error'); return; }
         if (!data) { toast('Data obrigatória', 'error'); return; }
         if (!qtd || qtd < 1) { toast('Qtd inválida', 'error'); return; }
         if (qtd > 500) { toast('Máximo 500 por lote', 'error'); return; }
+        if (respNome && (!respSenha || respSenha.length < 4)) { toast('Senha mínima 4 caracteres', 'error'); return; }
 
         var btn = document.getElementById('btn-criar');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;display:inline-block;vertical-align:middle;"></span> Gerando ' + qtd + ' convites...';
+
+        var senhaHash = null;
+        if (respNome && respSenha) {
+          if (!BCRYPT) throw new Error('bcryptjs não carregou. Recarregue a página.');
+          senhaHash = BCRYPT.hashSync(respSenha, 10);
+        }
 
         var expiraEm = validade > 0 ? new Date(Date.now() + validade * 24 * 3600 * 1000).toISOString() : null;
 
@@ -220,7 +279,11 @@
           usados: 0,
           expira_em: expiraEm,
           status: 'ativo',
-          criado_por: admin.id
+          criado_por: admin.id,
+          responsavel_nome: respNome || null,
+          responsavel_login: respNome ? respNome.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,30) : null,
+          responsavel_senha_hash: senhaHash,
+          bilhete_dias_antes: bilheteDias
         }).select('id').maybeSingle();
 
         if (lote.error) throw new Error(lote.error.message);
@@ -240,9 +303,7 @@
         var resp = await sb.from('convites').insert(convites);
         if (resp.error) throw new Error(resp.error.message);
 
-        toast('🎟️ Lote criado com ' + qtd + ' convites ✓', 'success');
-        modal.classList.remove('active');
-        window.location.href = 'lote_detalhes.html?id=' + loteId;
+        mostrarSucesso(loteId, nome, respNome, respSenha, qtd, data);
       } catch(err) {
         toast('Erro: ' + err.message, 'error');
         var btn = document.getElementById('btn-criar');
@@ -250,11 +311,65 @@
       }
     }
 
+    function mostrarSucesso(loteId, nomeLote, respNome, respSenha, qtd, dataEvento) {
+      document.getElementById('mn-titulo').textContent = '✓ Lote Criado!';
+      document.getElementById('novo-body').style.display = 'none';
+      var sucesso = document.getElementById('novo-sucesso');
+      sucesso.style.display = '';
+
+      var painelUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'painel_lote.html?id=' + loteId;
+
+      var temResp = !!respNome;
+      var html = '<div class="alert alert-success" style="font-size:0.9375rem;margin-bottom:var(--space-md);">🎟️ <strong>' + qtd + ' convites</strong> gerados pra "' + escapeHtml(nomeLote) + '"!</div>';
+
+      if (temResp) {
+        html += '<div class="step-divider">🔑 Credenciais do Responsável</div>' +
+          '<div class="credencial-box">' +
+            '<div class="credencial-label">Responsável</div>' +
+            '<div class="credencial-valor">👤 ' + escapeHtml(respNome) + '</div>' +
+          '</div>' +
+          '<div class="credencial-box">' +
+            '<div class="credencial-label">Senha do painel</div>' +
+            '<div class="credencial-valor senha">' + escapeHtml(respSenha) + '</div>' +
+          '</div>' +
+          '<div class="credencial-box">' +
+            '<div class="credencial-label">Link do painel</div>' +
+            '<div class="credencial-valor" style="font-size:0.75rem;">' + escapeHtml(painelUrl) + '</div>' +
+          '</div>' +
+          '<p style="font-size:0.8125rem;color:var(--color-warning);margin-bottom:var(--space-md);">⚠ Anota a senha! Depois fica criptografada e só dá pra resetar.</p>' +
+          '<button type="button" class="btn btn-secondary btn-block" id="btn-wa-resp" style="margin-bottom:8px;">💬 Mandar credenciais no WhatsApp</button>' +
+          '<button type="button" class="btn btn-gold btn-block" id="btn-copy-cred" style="margin-bottom:8px;">📋 Copiar credenciais</button>';
+      }
+
+      html += '<button type="button" class="btn btn-primary btn-block" id="btn-ver-detalhes">Ver detalhes do lote →</button>';
+
+      sucesso.innerHTML = html;
+
+      if (temResp) {
+        var msgWA = 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
+                    'Olá ' + respNome + '! Você é o responsável pelo lote "' + nomeLote + '".\n\n' +
+                    '🔗 Link do painel:\n' + painelUrl + '\n\n' +
+                    '🔑 Senha: ' + respSenha + '\n\n' +
+                    '📅 Data: ' + fmtData(dataEvento) + '\n' +
+                    '🎟️ Convites: ' + qtd + '\n\n' +
+                    'Acesse o painel pra copiar os links e distribuir entre os convidados.\n\n' +
+                    'Jimmy\'s Bar · Londrina PR';
+        document.getElementById('btn-wa-resp').addEventListener('click', function(){
+          window.open('https://wa.me/?text=' + encodeURIComponent(msgWA), '_blank');
+        });
+        document.getElementById('btn-copy-cred').addEventListener('click', function(btn){
+          copiarTexto(msgWA, this);
+        });
+      }
+
+      document.getElementById('btn-ver-detalhes').addEventListener('click', function(){
+        window.location.href = 'lote_detalhes.html?id=' + loteId;
+      });
+    }
+
     document.getElementById('btn-novo').addEventListener('click', abrirNovo);
     document.getElementById('btn-refresh').addEventListener('click', carregar);
-    document.getElementById('btn-criar').addEventListener('click', criarLote);
     document.getElementById('btn-fechar').addEventListener('click', function(){ modal.classList.remove('active'); });
-    document.getElementById('btn-cancelar').addEventListener('click', function(){ modal.classList.remove('active'); });
     Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(chip){
       chip.addEventListener('click', function(){
         Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(c){ c.classList.remove('active'); });
