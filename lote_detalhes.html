@@ -17,7 +17,6 @@
     .progresso-box { margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border-default); }
     .progresso-bar { height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden; margin-top: 8px; }
     .progresso-fill { height: 100%; background: linear-gradient(90deg, var(--color-green), var(--color-gold)); transition: width 0.3s; }
-
     .resp-box { background: var(--bg-secondary); border: 1px solid var(--color-gold); border-radius: var(--radius-md); padding: var(--space-lg); margin-bottom: var(--space-lg); }
     .resp-titulo { font-family: var(--font-display); color: var(--color-gold); font-size: 1.125rem; margin-bottom: var(--space-md); padding-bottom: 8px; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center; }
     .credencial-box { background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: 8px; }
@@ -27,7 +26,6 @@
     .credencial-row { display: flex; gap: 8px; align-items: center; }
     .credencial-row .credencial-info { flex: 1; min-width: 0; }
     .credencial-acoes { display: flex; gap: 4px; }
-
     .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); margin-bottom: var(--space-lg); }
     @media (min-width: 600px) { .stats-row { grid-template-columns: repeat(4, 1fr); } }
     .stat-card-l { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); text-align: center; }
@@ -37,7 +35,6 @@
     .stat-card-l.gray { border-top: 3px solid #555; }
     .stat-v { font-family: var(--font-display); font-size: 1.75rem; line-height: 1; color: var(--color-cream); }
     .stat-l { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
-
     .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); }
     .filter-chips { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); overflow-x: auto; }
     .chip { padding: 6px 14px; border-radius: var(--radius-full); background: var(--bg-tertiary); border: 1px solid var(--border-default); color: var(--text-secondary); font-size: 0.8125rem; cursor: pointer; white-space: nowrap; }
@@ -51,7 +48,6 @@
     .convite-status-line { font-size: 0.875rem; color: var(--color-cream); font-weight: 600; }
     .convite-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; word-break: break-all; }
     .convite-acoes { display: flex; flex-direction: column; gap: 4px; }
-
     .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
     .modal-backdrop.active { display: flex; }
     .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
@@ -65,6 +61,8 @@
     .step-divider { font-family: var(--font-display); font-size: 0.875rem; letter-spacing: 0.08em; color: var(--color-gold); margin: var(--space-lg) 0 var(--space-md); padding-bottom: 6px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
     .senha-input-wrap { display: flex; gap: 6px; }
     .senha-input-wrap input { flex: 1; font-family: monospace; letter-spacing: 0.1em; font-size: 1.0625rem; }
+    .btn-cred-grande { background: linear-gradient(135deg, var(--color-green) 0%, var(--color-gold) 100%); color: #fff; font-weight: 700; padding: 16px; border-radius: var(--radius-md); border: none; width: 100%; font-size: 0.9375rem; cursor: pointer; margin-top: var(--space-md); letter-spacing: 0.02em; }
+    .btn-cred-grande:active { transform: scale(0.98); }
   </style>
 </head>
 <body>
@@ -111,7 +109,6 @@
     if (!admin) return;
 
     var BCRYPT = (window.dcodeIO && window.dcodeIO.bcrypt) || window.bcrypt;
-
     var loteId = new URLSearchParams(window.location.search).get('id');
     if (!loteId) { document.getElementById('conteudo').innerHTML = '<div class="alert alert-error">ID do lote não fornecido.</div>'; return; }
 
@@ -138,16 +135,44 @@
       return window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'painel_lote.html?id=' + loteId;
     }
 
-    function msgWAResp(senha) {
+    // MENSAGEM COMPLETA com senha (após reset/criação)
+    function msgCredenciaisCompletas(senha) {
       var nome = lote.responsavel_nome || 'Responsável';
       return 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
-             'Olá ' + nome + '! Você é o responsável pelo lote "' + lote.nome + '".\n\n' +
-             '🔗 Link do painel:\n' + urlPainel() + '\n\n' +
-             (senha ? '🔑 Senha: ' + senha + '\n\n' : '') +
+             'Olá ' + nome + '!\n\n' +
+             'Você foi designado(a) como RESPONSÁVEL pelo lote de convites:\n\n' +
+             '📋 ' + lote.nome + '\n' +
              '📅 Data: ' + fmtData(lote.data_evento) + '\n' +
+             (lote.eventos ? '🎤 Evento: ' + lote.eventos.nome + '\n' : '') +
+             '🎟️ Total de convites: ' + lote.total_convites + '\n\n' +
+             '🔗 Acesse seu painel:\n' + urlPainel() + '\n\n' +
+             '🔑 Sua senha: ' + senha + '\n\n' +
+             'No painel você pode:\n' +
+             '✓ Copiar e distribuir os convites\n' +
+             '✓ Acompanhar quem confirmou\n' +
+             '✓ Ver dados em tempo real\n\n' +
+             'Qualquer dúvida, é só chamar!\n\n' +
+             'Jimmy\'s Bar · Londrina PR\n' +
+             '📞 43 98412-9883\n' +
+             '📍 @jimmys.londrina';
+    }
+
+    // MENSAGEM SÓ COM LINK (sem senha — quando responsável já tem)
+    function msgSoLink() {
+      var nome = lote.responsavel_nome || 'Responsável';
+      return 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
+             'Olá ' + nome + '!\n\n' +
+             'Aqui está o link do seu painel de convites:\n\n' +
+             '🔗 ' + urlPainel() + '\n\n' +
+             '📋 Lote: ' + lote.nome + '\n' +
+             '📅 Data: ' + fmtData(lote.data_evento) + '\n' +
+             (lote.eventos ? '🎤 Evento: ' + lote.eventos.nome + '\n' : '') +
              '🎟️ Convites: ' + lote.total_convites + '\n\n' +
-             'Acesse o painel pra copiar os links e distribuir entre os convidados.\n\n' +
-             'Jimmy\'s Bar · Londrina PR';
+             'Use a senha que já te enviei pra entrar.\n\n' +
+             'Qualquer dúvida, chama a gente!\n\n' +
+             'Jimmy\'s Bar · Londrina PR\n' +
+             '📞 43 98412-9883\n' +
+             '📍 @jimmys.londrina';
     }
 
     async function carregar() {
@@ -214,7 +239,7 @@
           '<div class="credencial-box">' +
             '<div class="credencial-row">' +
               '<div class="credencial-info">' +
-                '<div class="credencial-label">🔑 Senha</div>' +
+                '<div class="credencial-label">🔑 Senha (criptografada)</div>' +
                 '<div class="credencial-valor senha">●●●●●●</div>' +
               '</div>' +
               '<div class="credencial-acoes">' +
@@ -222,7 +247,9 @@
               '</div>' +
             '</div>' +
           '</div>' +
-          '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:var(--space-sm);">💡 A senha fica criptografada. Resete pra ver/enviar uma nova.</p>' +
+          '<button type="button" class="btn-cred-grande" id="btn-mandar-completa">' +
+            '🔑💬 Mandar credenciais completas (gera nova senha)' +
+          '</button>' +
         '</div>';
       } else {
         respHtml = '<div class="resp-box" style="border-color: var(--border-default);">' +
@@ -290,14 +317,14 @@
 
       document.getElementById('conteudo').innerHTML = infoHtml + respHtml + statsHtml + toolbarHtml + chipsHtml + listaHtml;
 
-      // Eventos do responsável
       if (lote.responsavel_nome) {
         document.getElementById('btn-copy-link').addEventListener('click', function(){ copiarTexto(urlPainel(), this); });
         document.getElementById('btn-wa-link').addEventListener('click', function(){
-          window.open('https://wa.me/?text=' + encodeURIComponent(msgWAResp(null)), '_blank');
+          window.open('https://wa.me/?text=' + encodeURIComponent(msgSoLink()), '_blank');
         });
         document.getElementById('btn-reset-senha').addEventListener('click', resetarSenha);
         document.getElementById('btn-edit-resp').addEventListener('click', editarResp);
+        document.getElementById('btn-mandar-completa').addEventListener('click', mandarCredenciaisCompletas);
       } else {
         document.getElementById('btn-add-resp').addEventListener('click', adicionarResp);
       }
@@ -309,7 +336,6 @@
       Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(chip){
         chip.addEventListener('click', function(){ filtroAtivo = chip.dataset.filtro; renderizar(); });
       });
-
       Array.prototype.forEach.call(document.querySelectorAll('button[data-copy]'), function(b){
         b.addEventListener('click', function(){ copiarTexto(urlConvite(b.dataset.copy), b); });
       });
@@ -354,7 +380,7 @@
         var senha = document.getElementById('mr-senha').value.trim();
         if (!nome) { toast('Nome obrigatório', 'error'); return; }
         if (!senha || senha.length < 4) { toast('Senha mínima 4 caracteres', 'error'); return; }
-        if (!BCRYPT) { toast('bcryptjs não carregou. Recarrega a página.', 'error'); return; }
+        if (!BCRYPT) { toast('bcrypt não carregou. Recarrega.', 'error'); return; }
 
         var hash = BCRYPT.hashSync(senha, 10);
         var resp = await sb.from('lotes').update({
@@ -364,7 +390,6 @@
         }).eq('id', loteId);
         if (resp.error) throw new Error(resp.error.message);
 
-        // atualiza lote local pra mostrar nova senha
         lote.responsavel_nome = nome;
         lote.responsavel_login = nome.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,30);
         lote.responsavel_senha_hash = hash;
@@ -377,7 +402,7 @@
 
     function editarResp() {
       var html = '<div class="form-group"><label class="form-label">Nome do responsável *</label><input type="text" id="mr-nome" class="form-input" value="' + escapeHtml(lote.responsavel_nome || '') + '"></div>' +
-        '<p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:var(--space-md);">💡 Pra trocar a senha, use o botão "🔁 Resetar".</p>' +
+        '<p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:var(--space-md);">💡 Pra trocar a senha, use "🔁 Resetar".</p>' +
         '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
           '<button type="button" class="btn btn-primary" id="btn-mr-salvar" style="flex:1;">✓ Salvar</button>' +
           '<button type="button" class="btn btn-danger" id="btn-mr-remover">Remover</button>' +
@@ -412,9 +437,9 @@
     }
 
     async function resetarSenha() {
-      if (!confirm('Resetar senha do responsável? A senha atual ficará inválida.')) return;
+      if (!confirm('Resetar senha do responsável? A senha atual fica inválida.')) return;
       try {
-        if (!BCRYPT) { toast('bcryptjs não carregou. Recarrega a página.', 'error'); return; }
+        if (!BCRYPT) { toast('bcrypt não carregou. Recarrega.', 'error'); return; }
         var nova = gerarSenhaSimples();
         var hash = BCRYPT.hashSync(nova, 10);
         var resp = await sb.from('lotes').update({ responsavel_senha_hash: hash }).eq('id', loteId);
@@ -425,7 +450,27 @@
       } catch(err) { toast('Erro: ' + err.message, 'error'); }
     }
 
+    async function mandarCredenciaisCompletas() {
+      if (!confirm('Vai gerar uma NOVA senha (a atual fica inválida) e abrir o WhatsApp com a mensagem pronta. Continuar?')) return;
+      try {
+        if (!BCRYPT) { toast('bcrypt não carregou. Recarrega.', 'error'); return; }
+        var nova = gerarSenhaSimples();
+        var hash = BCRYPT.hashSync(nova, 10);
+        var resp = await sb.from('lotes').update({ responsavel_senha_hash: hash }).eq('id', loteId);
+        if (resp.error) throw new Error(resp.error.message);
+        lote.responsavel_senha_hash = hash;
+
+        // Abre WhatsApp ANTES de mostrar modal (sincroniza melhor o open)
+        var msg = msgCredenciaisCompletas(nova);
+        window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+
+        // Depois mostra dialog com a senha pra anotar
+        mostrarSenhaNova(nova);
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
     function mostrarSenhaNova(senha) {
+      var msg = msgCredenciaisCompletas(senha);
       var html = '<div class="alert alert-success" style="margin-bottom:var(--space-md);">⚠ Anota essa senha agora! Depois de fechar, vira hash e só dá pra resetar de novo.</div>' +
         '<div class="credencial-box">' +
           '<div class="credencial-label">Responsável</div>' +
@@ -439,12 +484,11 @@
           '<div class="credencial-label">Link do painel</div>' +
           '<div class="credencial-valor" style="font-size:0.75rem;">' + escapeHtml(urlPainel()) + '</div>' +
         '</div>' +
-        '<button type="button" class="btn btn-secondary btn-block" id="btn-wa-credp" style="margin-bottom:8px;">💬 Mandar credenciais no WhatsApp</button>' +
+        '<button type="button" class="btn btn-secondary btn-block" id="btn-wa-credp" style="margin-bottom:8px;">💬 Mandar credenciais completas no WhatsApp</button>' +
         '<button type="button" class="btn btn-gold btn-block" id="btn-copy-credp" style="margin-bottom:8px;">📋 Copiar credenciais</button>' +
         '<button type="button" class="btn btn-primary btn-block" id="btn-fechar-credp">✓ OK, anotei</button>';
 
       abrirRespModal('🔑 Nova Senha Gerada', html, function(){
-        var msg = msgWAResp(senha);
         document.getElementById('btn-wa-credp').addEventListener('click', function(){
           window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
         });
@@ -467,8 +511,7 @@
 
     function copiarTodosLinks() {
       var area = document.getElementById('links-area');
-      var btn = document.getElementById('btn-copiar-todos');
-      copiarTexto(area.value, btn);
+      copiarTexto(area.value, document.getElementById('btn-copiar-todos'));
     }
 
     function whatsappTodos() {
