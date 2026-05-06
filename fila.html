@@ -48,6 +48,9 @@
     .mesa-opt-nome { font-family: var(--font-display); font-size: 1.25rem; color: var(--color-cream); line-height: 1; }
     .mesa-opt-cap { font-size: 0.625rem; color: var(--text-muted); margin-top: 4px; }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+    .cliente-encontrado { background: rgba(42, 171, 71, 0.15); border: 1px solid var(--color-green); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+    .cliente-novo-aviso { background: rgba(201, 151, 60, 0.1); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+    .step-title { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.05em; color: var(--color-gold); margin-bottom: var(--space-md); padding-bottom: 8px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
   </style>
 </head>
 <body>
@@ -84,14 +87,7 @@
   <div class="modal-backdrop" id="modal-add">
     <div class="modal-box">
       <div class="modal-header"><div class="modal-title">+ Adicionar à Fila</div><button type="button" class="close-btn" id="btn-fechar-add">✕</button></div>
-      <div class="form-group"><label class="form-label">Nome *</label><input type="text" id="f-nome" class="form-input" placeholder="Nome do cliente"></div>
-      <div class="form-group"><label class="form-label">Telefone *</label><input type="tel" id="f-tel" class="form-input" inputmode="numeric" placeholder="(43) 99999-9999"></div>
-      <div class="row-2">
-        <div class="form-group"><label class="form-label">Pessoas *</label><input type="number" id="f-pessoas" class="form-input" inputmode="numeric" min="1" value="2"></div>
-        <div class="form-group"><label class="form-label">Espera (min)</label><input type="number" id="f-tempo" class="form-input" inputmode="numeric" min="0" value="15"></div>
-      </div>
-      <div class="form-group"><label class="form-label">Observações</label><textarea id="f-obs" class="form-textarea" placeholder="Aniversário, mesa de canto..."></textarea></div>
-      <button type="button" class="btn btn-primary btn-block" id="btn-criar">+ Adicionar</button>
+      <div id="add-body"></div>
     </div>
   </div>
 
@@ -115,17 +111,22 @@
     var setoresCache = [];
     var modalAdd = document.getElementById('modal-add');
     var modalMesaPick = document.getElementById('modal-mesa-pick');
+    var clienteEncontrado = null;
     var mesaPickerCallback = null;
     var mesaPickerSelecionada = null;
     var mesaPickerQtd = 1;
     var filaSelecionada = null;
 
     function escapeHtml(s){if(s==null)return ''; return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+    function fmtCpf(cpf){if(!cpf)return ''; var d=cpf.replace(/\D/g,''); if(d.length!==11)return cpf; return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);}
     function aplicarMascaraTel(input){input.addEventListener('input',function(){var v=input.value.replace(/\D/g,'').slice(0,11);if(v.length>6)v='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);else if(v.length>2)v='('+v.slice(0,2)+') '+v.slice(2);else if(v.length>0)v='('+v;input.value=v;});}
+    function aplicarMascaraCPF(input){input.addEventListener('input',function(){var v=input.value.replace(/\D/g,'').slice(0,11);if(v.length>9)v=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6,9)+'-'+v.slice(9);else if(v.length>6)v=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6);else if(v.length>3)v=v.slice(0,3)+'.'+v.slice(3);input.value=v;});}
 
     function tempoEspera(chegou) {
+      if (!chegou) return { txt: '—', classe: '' };
       var ms = Date.now() - new Date(chegou).getTime();
       var min = Math.floor(ms / 60000);
+      if (min < 0) min = 0;
       if (min < 60) return { txt: min + 'MIN', classe: min > 30 ? 'tempo-alto' : (min > 15 ? 'tempo-medio' : '') };
       var h = Math.floor(min / 60);
       var m = min % 60;
@@ -143,10 +144,10 @@
         mesasCache = m.data || [];
 
         var f = await sb.from('fila_espera')
-          .select('*')
+          .select('*, clientes(nome_completo, telefone, cpf, classificacao)')
           .eq('tenant_id', TENANT_ID)
           .in('status', ['aguardando', 'chamado'])
-          .order('created_at', { ascending: true });
+          .order('hora_chegada', { ascending: true });
         if (f.error) throw new Error(f.error.message);
         filaCache = f.data || [];
 
@@ -160,7 +161,8 @@
       var totPessoas = filaCache.reduce(function(a,b){return a + (b.qtd_pessoas||0);}, 0);
       var totMin = 0, count = 0;
       filaCache.forEach(function(f){
-        var ms = Date.now() - new Date(f.created_at).getTime();
+        if (!f.hora_chegada) return;
+        var ms = Date.now() - new Date(f.hora_chegada).getTime();
         totMin += Math.floor(ms / 60000); count++;
       });
       var media = count > 0 ? Math.floor(totMin / count) : 0;
@@ -183,20 +185,22 @@
 
       var html = '';
       filaCache.forEach(function(f, idx){
-        var t = tempoEspera(f.created_at);
+        var nome = f.clientes ? f.clientes.nome_completo : '(sem cliente)';
+        var tel = (f.clientes && f.clientes.telefone) ? fmtTelefone(f.clientes.telefone) : '';
+        var t = tempoEspera(f.hora_chegada);
         var statusBadge = f.status === 'chamado' ? ' <span class="badge badge-gold" style="font-size:0.6875rem;vertical-align:middle;margin-left:4px;">📞 chamado</span>' : '';
         html += '<div class="fila-card ' + f.status + '">' +
           '<div class="fila-pos">' + (idx+1) + '<sup>º</sup></div>' +
           '<div class="fila-info">' +
-            '<div class="fila-nome">' + escapeHtml(f.nome_completo) + statusBadge + '</div>' +
+            '<div class="fila-nome">' + escapeHtml(nome) + statusBadge + '</div>' +
             '<div class="fila-meta">' +
               '<span>👥 ' + f.qtd_pessoas + '</span>' +
-              '<span>📞 ' + fmtTelefone(f.telefone) + '</span>' +
+              (tel ? '<span>📞 ' + tel + '</span>' : '') +
               '<span class="' + t.classe + '">⏱ ' + t.txt + '</span>' +
             '</div>' +
           '</div>' +
           '<div class="fila-acoes">' +
-            (f.status === 'aguardando' ? '<button type="button" class="btn btn-gold btn-sm" data-chamar="' + f.id + '">📞 Chamar</button>' : '') +
+            (f.status === 'aguardando' && f.clientes ? '<button type="button" class="btn btn-gold btn-sm" data-chamar="' + f.id + '">📞 Chamar</button>' : '') +
             '<button type="button" class="btn btn-primary btn-sm" data-alocar="' + f.id + '">🪑 Alocar</button>' +
             '<button type="button" class="btn btn-ghost btn-sm" data-desistiu="' + f.id + '">✗ Desistiu</button>' +
           '</div>' +
@@ -217,23 +221,20 @@
 
     async function chamar(id) {
       var f = filaCache.find(function(x){return x.id === id;});
-      if (!f) return;
-      var primeiroNome = (f.nome_completo || '').split(' ')[0];
+      if (!f || !f.clientes) return;
+      var primeiroNome = (f.clientes.nome_completo || '').split(' ')[0];
       var msg = 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
                 'Olá ' + primeiroNome + '! 🍻\n\n' +
                 'Sua mesa tá liberada!\n' +
                 'Vem até o balcão que vamos te acompanhar até a sua mesa.\n\n' +
                 '📍 @jimmys.londrina\n' +
                 'Jimmy\'s Bar · Londrina PR';
-      var tel = (f.telefone || '').replace(/\D/g, '');
+      var tel = (f.clientes.telefone || '').replace(/\D/g, '');
       var telWA = tel.length >= 10 ? '55' + tel : '';
       var url = 'https://wa.me/' + telWA + '?text=' + encodeURIComponent(msg);
       window.open(url, '_blank');
 
-      var resp = await sb.from('fila_espera').update({
-        status: 'chamado',
-        chamado_em: new Date().toISOString()
-      }).eq('id', id);
+      var resp = await sb.from('fila_espera').update({ status: 'chamado' }).eq('id', id);
       if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
       toast('Cliente chamado ✓', 'success');
       carregar();
@@ -242,6 +243,10 @@
     async function alocar(id) {
       filaSelecionada = filaCache.find(function(x){return x.id === id;});
       if (!filaSelecionada) return;
+      if (!filaSelecionada.cliente_id) {
+        toast('Registro sem cliente — marca como desistiu', 'error');
+        return;
+      }
       mesaPickerSelecionada = null;
       mesaPickerQtd = filaSelecionada.qtd_pessoas || 1;
       mesaPickerCallback = function(mesaId){
@@ -259,7 +264,8 @@
       var r = await sb.from('reservas').select('mesa_id').eq('tenant_id', TENANT_ID).eq('data', hoje).in('status', ['pendente','confirmada','em_uso']);
       var ocupadas = (r.data || []).filter(function(x){return x.mesa_id;}).map(function(x){return x.mesa_id;});
 
-      var html = '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Mesa pra <strong>' + escapeHtml(filaSelecionada.nome_completo) + '</strong> · <strong>' + mesaPickerQtd + ' pessoa(s)</strong></p>';
+      var nome = filaSelecionada.clientes ? filaSelecionada.clientes.nome_completo : 'Cliente';
+      var html = '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Mesa pra <strong>' + escapeHtml(nome) + '</strong> · <strong>' + mesaPickerQtd + ' pessoa(s)</strong></p>';
       var temAlguma = false;
 
       setoresCache.forEach(function(s){
@@ -309,23 +315,9 @@
       try {
         var f = filaSelecionada;
         var hoje = hojeISO();
-        var tel = (f.telefone || '').replace(/\D/g, '');
-        var clienteId = null;
-        if (tel) {
-          var pc = await sb.from('clientes').select('id').eq('tenant_id', TENANT_ID).eq('telefone', tel).maybeSingle();
-          if (pc.data) clienteId = pc.data.id;
-        }
-        if (!clienteId) {
-          var nc = await sb.from('clientes').insert({
-            tenant_id: TENANT_ID, nome_completo: f.nome_completo,
-            telefone: tel || null, origem: 'walk_in'
-          }).select('id').maybeSingle();
-          if (nc.error && nc.error.code !== '23505') throw new Error(nc.error.message);
-          clienteId = nc.data ? nc.data.id : null;
-        }
 
         var r = await sb.from('reservas').insert({
-          tenant_id: TENANT_ID, cliente_id: clienteId, data: hoje,
+          tenant_id: TENANT_ID, cliente_id: f.cliente_id, data: hoje,
           qtd_pessoas: f.qtd_pessoas, status: 'em_uso', origem: 'walk_in',
           mesa_id: mesaId, observacoes: f.observacoes || null,
           criada_por: admin.id, confirmada_por: admin.id
@@ -333,7 +325,10 @@
         if (r.error) throw new Error(r.error.message);
 
         var u = await sb.from('fila_espera').update({
-          status: 'sentado', sentado_em: new Date().toISOString(),
+          status: 'alocado',
+          alocado_em: new Date().toISOString(),
+          alocado_por: admin.id,
+          mesa_id: mesaId,
           reserva_id: r.data.id
         }).eq('id', f.id);
         if (u.error) throw new Error(u.error.message);
@@ -352,29 +347,117 @@
     }
 
     function abrirAdd() {
-      document.getElementById('f-nome').value = '';
-      document.getElementById('f-tel').value = '';
-      document.getElementById('f-pessoas').value = 2;
-      document.getElementById('f-tempo').value = 15;
-      document.getElementById('f-obs').value = '';
+      clienteEncontrado = null;
+      renderizarModalAdd();
       modalAdd.classList.add('active');
     }
 
-    async function criarFila() {
-      try {
-        var nome = document.getElementById('f-nome').value.trim();
-        var tel = document.getElementById('f-tel').value.replace(/\D/g, '');
-        var pessoas = parseInt(document.getElementById('f-pessoas').value, 10);
-        var tempo = parseInt(document.getElementById('f-tempo').value, 10) || 0;
-        var obs = document.getElementById('f-obs').value.trim();
+    function renderizarModalAdd() {
+      var html = '<div class="step-title">1. Identificar cliente</div>' +
+        '<div class="form-group"><label class="form-label">Telefone</label><input type="tel" id="busca-tel" class="form-input" inputmode="numeric" placeholder="(43) 99999-9999"></div>' +
+        '<div class="form-group"><label class="form-label">OU CPF</label><input type="tel" id="busca-cpf" class="form-input" inputmode="numeric" placeholder="000.000.000-00"></div>' +
+        '<button type="button" class="btn btn-gold btn-block" id="btn-buscar-cliente">🔍 Buscar Cliente</button>' +
+        '<div id="resultado-busca" style="margin-top:var(--space-md);"></div>';
+      document.getElementById('add-body').innerHTML = html;
+      aplicarMascaraTel(document.getElementById('busca-tel'));
+      aplicarMascaraCPF(document.getElementById('busca-cpf'));
+      document.getElementById('btn-buscar-cliente').addEventListener('click', buscarCliente);
+    }
 
-        if (!nome || nome.length < 2) { toast('Nome obrigatório', 'error'); return; }
-        if (!tel || tel.length < 10) { toast('Telefone inválido', 'error'); return; }
+    async function buscarCliente() {
+      var tel = document.getElementById('busca-tel').value.replace(/\D/g, '');
+      var cpf = document.getElementById('busca-cpf').value.replace(/\D/g, '');
+      var div = document.getElementById('resultado-busca');
+      if (!tel && !cpf) { toast('Digite telefone ou CPF', 'error'); return; }
+      if (tel && tel.length < 10) { toast('Telefone incompleto', 'error'); return; }
+      if (cpf && cpf.length !== 11) { toast('CPF inválido', 'error'); return; }
+      div.innerHTML = '<div class="spinner" style="margin: 0 auto;"></div>';
+      try {
+        var query = sb.from('clientes').select('*').eq('tenant_id', TENANT_ID).eq('ativo', true);
+        if (cpf) query = query.eq('cpf', cpf);
+        else query = query.eq('telefone', tel);
+        var resp = await query.maybeSingle();
+        if (resp.data) { clienteEncontrado = resp.data; mostrarClienteEncontrado(); }
+        else mostrarFormularioNovo(tel, cpf);
+      } catch(err) { div.innerHTML = '<div class="alert alert-error">Erro: ' + err.message + '</div>'; }
+    }
+
+    function mostrarClienteEncontrado() {
+      var c = clienteEncontrado;
+      var html = '<div class="cliente-encontrado">' +
+        '<strong style="color:var(--color-cream);font-size:1.0625rem;">✓ ' + escapeHtml(c.nome_completo) + '</strong>' +
+        '<div style="font-size:0.8125rem;color:var(--text-secondary);margin-top:6px;">' +
+          (c.telefone ? '📞 ' + fmtTelefone(c.telefone) + '<br>' : '') +
+          (c.cpf ? '📄 ' + fmtCpf(c.cpf) + '<br>' : '') +
+          '👁 ' + (c.visitas_total || 0) + ' visitas · ' + c.classificacao +
+        '</div>' +
+      '</div>' +
+      camposFila() +
+      '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
+        '<button type="button" class="btn btn-primary" id="btn-add-fila" style="flex:1;">+ Adicionar à Fila</button>' +
+        '<button type="button" class="btn btn-ghost" id="btn-trocar">Trocar</button>' +
+      '</div>';
+      document.getElementById('resultado-busca').innerHTML = html;
+      document.getElementById('btn-trocar').addEventListener('click', function(){ clienteEncontrado=null; renderizarModalAdd(); });
+      document.getElementById('btn-add-fila').addEventListener('click', function(){ adicionarFila(false); });
+    }
+
+    function mostrarFormularioNovo(tel, cpf) {
+      var html = '<div class="cliente-novo-aviso">' +
+        '<strong style="color:var(--color-gold);">⚠ Cliente não encontrado</strong>' +
+        '<div style="font-size:0.8125rem;color:var(--text-secondary);margin-top:4px;">Cadastre os dados abaixo + adiciona à fila.</div>' +
+      '</div>' +
+      '<div class="step-title">2. Cadastrar novo cliente</div>' +
+      '<div class="form-group"><label class="form-label">Nome completo *</label><input type="text" id="novo-nome" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">Telefone *</label><input type="tel" id="novo-tel" class="form-input" inputmode="numeric" value="' + (tel ? fmtTelefone(tel) : '') + '" placeholder="(43) 99999-9999"></div>' +
+      '<div class="form-group"><label class="form-label">CPF</label><input type="tel" id="novo-cpf" class="form-input" inputmode="numeric" value="' + (cpf ? fmtCpf(cpf) : '') + '" placeholder="000.000.000-00"></div>' +
+      camposFila() +
+      '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
+        '<button type="button" class="btn btn-primary" id="btn-cadastrar-tudo" style="flex:1;">+ Cadastrar Cliente + Fila</button>' +
+        '<button type="button" class="btn btn-ghost" id="btn-trocar">Voltar</button>' +
+      '</div>';
+      document.getElementById('resultado-busca').innerHTML = html;
+      aplicarMascaraTel(document.getElementById('novo-tel'));
+      aplicarMascaraCPF(document.getElementById('novo-cpf'));
+      document.getElementById('btn-trocar').addEventListener('click', renderizarModalAdd);
+      document.getElementById('btn-cadastrar-tudo').addEventListener('click', function(){ adicionarFila(true); });
+    }
+
+    function camposFila() {
+      var passo = clienteEncontrado ? '2' : '3';
+      return '<div class="step-title" style="margin-top:var(--space-lg);">' + passo + '. Dados da fila</div>' +
+        '<div class="form-group"><label class="form-label">Pessoas *</label><input type="number" id="f-pessoas" class="form-input" inputmode="numeric" min="1" value="2"></div>' +
+        '<div class="form-group"><label class="form-label">Observações</label><textarea id="f-obs" class="form-textarea" placeholder="Aniversário, mesa de canto..."></textarea></div>';
+    }
+
+    async function adicionarFila(cadastrarCliente) {
+      try {
+        var pessoas = parseInt(document.getElementById('f-pessoas').value, 10);
+        var obs = document.getElementById('f-obs').value.trim();
         if (!pessoas || pessoas < 1) { toast('Pessoas inválido', 'error'); return; }
 
+        var clienteId;
+        if (cadastrarCliente) {
+          var nome = document.getElementById('novo-nome').value.trim();
+          var tel = document.getElementById('novo-tel').value.replace(/\D/g, '');
+          var cpf = document.getElementById('novo-cpf').value.replace(/\D/g, '');
+          if (!nome || nome.length < 3) { toast('Nome obrigatório', 'error'); return; }
+          if (!tel || tel.length < 10) { toast('Telefone inválido', 'error'); return; }
+          if (cpf && cpf.length !== 11) { toast('CPF inválido', 'error'); return; }
+          var nc = await sb.from('clientes').insert({
+            tenant_id: TENANT_ID, nome_completo: nome, telefone: tel,
+            cpf: cpf || null, origem: 'walk_in'
+          }).select('id').maybeSingle();
+          if (nc.error) {
+            if (nc.error.code === '23505') { toast('Telefone ou CPF já cadastrado', 'error'); return; }
+            throw new Error(nc.error.message);
+          }
+          clienteId = nc.data.id;
+        } else { clienteId = clienteEncontrado.id; }
+
         var resp = await sb.from('fila_espera').insert({
-          tenant_id: TENANT_ID, nome_completo: nome, telefone: tel,
-          qtd_pessoas: pessoas, tempo_estimado_min: tempo, status: 'aguardando',
+          tenant_id: TENANT_ID, cliente_id: clienteId,
+          qtd_pessoas: pessoas, status: 'aguardando',
           observacoes: obs || null, criado_por: admin.id
         });
         if (resp.error) throw new Error(resp.error.message);
@@ -386,12 +469,10 @@
 
     document.getElementById('btn-add').addEventListener('click', abrirAdd);
     document.getElementById('btn-refresh').addEventListener('click', carregar);
-    document.getElementById('btn-criar').addEventListener('click', criarFila);
     document.getElementById('btn-fechar-add').addEventListener('click', function(){ modalAdd.classList.remove('active'); });
     document.getElementById('btn-fechar-mp').addEventListener('click', function(){ modalMesaPick.classList.remove('active'); });
     modalAdd.addEventListener('click', function(e){ if (e.target === modalAdd) modalAdd.classList.remove('active'); });
     modalMesaPick.addEventListener('click', function(e){ if (e.target === modalMesaPick) modalMesaPick.classList.remove('active'); });
-    aplicarMascaraTel(document.getElementById('f-tel'));
 
     setInterval(function(){ if (filaCache.length > 0) renderizar(); }, 30000);
 
