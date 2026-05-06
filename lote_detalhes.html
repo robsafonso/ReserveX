@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Detalhes do Lote · ReserveX · Jimmy's</title>
   <link rel="stylesheet" href="assets/styles.css?v=3">
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
   <script>
     window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
     window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
@@ -16,6 +17,17 @@
     .progresso-box { margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border-default); }
     .progresso-bar { height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden; margin-top: 8px; }
     .progresso-fill { height: 100%; background: linear-gradient(90deg, var(--color-green), var(--color-gold)); transition: width 0.3s; }
+
+    .resp-box { background: var(--bg-secondary); border: 1px solid var(--color-gold); border-radius: var(--radius-md); padding: var(--space-lg); margin-bottom: var(--space-lg); }
+    .resp-titulo { font-family: var(--font-display); color: var(--color-gold); font-size: 1.125rem; margin-bottom: var(--space-md); padding-bottom: 8px; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center; }
+    .credencial-box { background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: 8px; }
+    .credencial-label { font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.08em; margin-bottom: 4px; }
+    .credencial-valor { font-family: monospace; color: var(--color-cream); font-size: 1rem; word-break: break-all; }
+    .credencial-valor.senha { font-size: 1.5rem; letter-spacing: 0.15em; color: var(--color-gold); }
+    .credencial-row { display: flex; gap: 8px; align-items: center; }
+    .credencial-row .credencial-info { flex: 1; min-width: 0; }
+    .credencial-acoes { display: flex; gap: 4px; }
+
     .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); margin-bottom: var(--space-lg); }
     @media (min-width: 600px) { .stats-row { grid-template-columns: repeat(4, 1fr); } }
     .stat-card-l { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); text-align: center; }
@@ -25,6 +37,7 @@
     .stat-card-l.gray { border-top: 3px solid #555; }
     .stat-v { font-family: var(--font-display); font-size: 1.75rem; line-height: 1; color: var(--color-cream); }
     .stat-l { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
     .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); }
     .filter-chips { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); overflow-x: auto; }
     .chip { padding: 6px 14px; border-radius: var(--radius-full); background: var(--bg-tertiary); border: 1px solid var(--border-default); color: var(--text-secondary); font-size: 0.8125rem; cursor: pointer; white-space: nowrap; }
@@ -38,6 +51,7 @@
     .convite-status-line { font-size: 0.875rem; color: var(--color-cream); font-weight: 600; }
     .convite-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; word-break: break-all; }
     .convite-acoes { display: flex; flex-direction: column; gap: 4px; }
+
     .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
     .modal-backdrop.active { display: flex; }
     .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
@@ -47,6 +61,10 @@
     .links-textarea { width: 100%; min-height: 220px; background: var(--bg-tertiary); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); color: var(--color-cream); font-size: 0.8125rem; font-family: monospace; resize: vertical; word-break: break-all; }
     .empty { text-align: center; padding: var(--space-2xl) var(--space-md); color: var(--text-muted); }
     .empty-icon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.4; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+    .step-divider { font-family: var(--font-display); font-size: 0.875rem; letter-spacing: 0.08em; color: var(--color-gold); margin: var(--space-lg) 0 var(--space-md); padding-bottom: 6px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
+    .senha-input-wrap { display: flex; gap: 6px; }
+    .senha-input-wrap input { flex: 1; font-family: monospace; letter-spacing: 0.1em; font-size: 1.0625rem; }
   </style>
 </head>
 <body>
@@ -68,12 +86,19 @@
   <div class="modal-backdrop" id="modal-links">
     <div class="modal-box">
       <div class="modal-header"><div class="modal-title">📋 Copiar Todos os Links</div><button type="button" class="close-btn" id="btn-fechar-links">✕</button></div>
-      <p class="text-secondary" style="font-size:0.875rem;margin-bottom:var(--space-md);">Copia tudo e cola no WhatsApp / Insta. Cada linha é um link único.</p>
+      <p class="text-secondary" style="font-size:0.875rem;margin-bottom:var(--space-md);">Cada linha é um link único.</p>
       <textarea class="links-textarea" id="links-area" readonly></textarea>
       <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-md);">
         <button type="button" class="btn btn-gold" id="btn-copiar-todos" style="flex:1;">📋 Copiar Tudo</button>
         <button type="button" class="btn btn-secondary" id="btn-whatsapp-todos">💬 WhatsApp</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-resp">
+    <div class="modal-box">
+      <div class="modal-header"><div class="modal-title" id="mr-titulo">Responsável</div><button type="button" class="close-btn" id="btn-fechar-resp">✕</button></div>
+      <div id="mr-body"></div>
     </div>
   </div>
 
@@ -85,6 +110,8 @@
     var admin = exigirLogin();
     if (!admin) return;
 
+    var BCRYPT = (window.dcodeIO && window.dcodeIO.bcrypt) || window.bcrypt;
+
     var loteId = new URLSearchParams(window.location.search).get('id');
     if (!loteId) { document.getElementById('conteudo').innerHTML = '<div class="alert alert-error">ID do lote não fornecido.</div>'; return; }
 
@@ -92,11 +119,35 @@
     var convitesCache = [];
     var filtroAtivo = 'todos';
     var modalLinks = document.getElementById('modal-links');
+    var modalResp = document.getElementById('modal-resp');
 
     function escapeHtml(s){if(s==null)return ''; return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
+    function gerarSenhaSimples() {
+      var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      var s = '';
+      for (var i = 0; i < 6; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+      return s;
+    }
+
     function urlConvite(token) {
       return window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'cadastro.html?token=' + token;
+    }
+
+    function urlPainel() {
+      return window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'painel_lote.html?id=' + loteId;
+    }
+
+    function msgWAResp(senha) {
+      var nome = lote.responsavel_nome || 'Responsável';
+      return 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
+             'Olá ' + nome + '! Você é o responsável pelo lote "' + lote.nome + '".\n\n' +
+             '🔗 Link do painel:\n' + urlPainel() + '\n\n' +
+             (senha ? '🔑 Senha: ' + senha + '\n\n' : '') +
+             '📅 Data: ' + fmtData(lote.data_evento) + '\n' +
+             '🎟️ Convites: ' + lote.total_convites + '\n\n' +
+             'Acesse o painel pra copiar os links e distribuir entre os convidados.\n\n' +
+             'Jimmy\'s Bar · Londrina PR';
     }
 
     async function carregar() {
@@ -122,7 +173,6 @@
       var usados = convitesCache.filter(function(c){return c.status === 'usado';}).length;
       var cancelados = convitesCache.filter(function(c){return c.status === 'cancelado';}).length;
       var perc = lote.total_convites > 0 ? Math.round((usados / lote.total_convites) * 100) : 0;
-
       var statusBadge = lote.status === 'ativo' ? 'green' : lote.status === 'cancelado' ? 'red' : 'gray';
 
       var infoHtml = '<div class="info-box">' +
@@ -131,6 +181,7 @@
           '<span>📅 ' + fmtData(lote.data_evento) + '</span>' +
           (lote.eventos ? '<span>🎤 ' + escapeHtml(lote.eventos.nome) + '</span>' : '') +
           (lote.expira_em ? '<span>⏰ Expira ' + fmtData(lote.expira_em.split('T')[0]) + '</span>' : '<span>♾️ Sem validade</span>') +
+          '<span>🎫 Bilhete: ' + (lote.bilhete_dias_antes > 0 ? lote.bilhete_dias_antes + ' dias antes' : 'imediato') + '</span>' +
         '</div>' +
         (lote.descricao ? '<div style="font-size:0.875rem;color:var(--text-secondary);margin-top:8px;">' + escapeHtml(lote.descricao) + '</div>' : '') +
         '<div class="progresso-box">' +
@@ -141,6 +192,45 @@
           '<div class="progresso-bar"><div class="progresso-fill" style="width:' + perc + '%"></div></div>' +
         '</div>' +
       '</div>';
+
+      var respHtml;
+      if (lote.responsavel_nome) {
+        respHtml = '<div class="resp-box">' +
+          '<div class="resp-titulo">👤 Responsável: ' + escapeHtml(lote.responsavel_nome) +
+            ' <button type="button" class="btn btn-ghost btn-sm" id="btn-edit-resp">✏️ Editar</button>' +
+          '</div>' +
+          '<div class="credencial-box">' +
+            '<div class="credencial-row">' +
+              '<div class="credencial-info">' +
+                '<div class="credencial-label">🔗 Link do painel</div>' +
+                '<div class="credencial-valor" style="font-size:0.8125rem;">' + escapeHtml(urlPainel()) + '</div>' +
+              '</div>' +
+              '<div class="credencial-acoes">' +
+                '<button type="button" class="btn btn-gold btn-sm" id="btn-copy-link">📋</button>' +
+                '<button type="button" class="btn btn-secondary btn-sm" id="btn-wa-link">💬</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="credencial-box">' +
+            '<div class="credencial-row">' +
+              '<div class="credencial-info">' +
+                '<div class="credencial-label">🔑 Senha</div>' +
+                '<div class="credencial-valor senha">●●●●●●</div>' +
+              '</div>' +
+              '<div class="credencial-acoes">' +
+                '<button type="button" class="btn btn-gold btn-sm" id="btn-reset-senha">🔁 Resetar</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:var(--space-sm);">💡 A senha fica criptografada. Resete pra ver/enviar uma nova.</p>' +
+        '</div>';
+      } else {
+        respHtml = '<div class="resp-box" style="border-color: var(--border-default);">' +
+          '<div class="resp-titulo" style="color: var(--text-muted);">👤 Sem responsável atribuído</div>' +
+          '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Adicione um responsável (promotor) pra delegar a gestão dos convites desse lote.</p>' +
+          '<button type="button" class="btn btn-gold btn-block" id="btn-add-resp">+ Adicionar Responsável</button>' +
+        '</div>';
+      }
 
       var statsHtml = '<div class="stats-row">' +
         '<div class="stat-card-l gold"><div class="stat-v">' + lote.total_convites + '</div><div class="stat-l">Total</div></div>' +
@@ -169,9 +259,7 @@
 
       var listaHtml = '';
       filtrados.forEach(function(c){
-        var nome = '';
-        var tel = '';
-        var qtd = '';
+        var nome = '', tel = '', qtd = '';
         if (c.reservas && c.reservas.clientes) {
           nome = c.reservas.clientes.nome_completo;
           tel = fmtTelefone(c.reservas.clientes.telefone);
@@ -200,27 +288,173 @@
         listaHtml = '<div class="empty"><div class="empty-icon">🎟️</div><p>Nenhum convite ' + (filtroAtivo !== 'todos' ? filtroAtivo : '') + '.</p></div>';
       }
 
-      document.getElementById('conteudo').innerHTML = infoHtml + statsHtml + toolbarHtml + chipsHtml + listaHtml;
+      document.getElementById('conteudo').innerHTML = infoHtml + respHtml + statsHtml + toolbarHtml + chipsHtml + listaHtml;
+
+      // Eventos do responsável
+      if (lote.responsavel_nome) {
+        document.getElementById('btn-copy-link').addEventListener('click', function(){ copiarTexto(urlPainel(), this); });
+        document.getElementById('btn-wa-link').addEventListener('click', function(){
+          window.open('https://wa.me/?text=' + encodeURIComponent(msgWAResp(null)), '_blank');
+        });
+        document.getElementById('btn-reset-senha').addEventListener('click', resetarSenha);
+        document.getElementById('btn-edit-resp').addEventListener('click', editarResp);
+      } else {
+        document.getElementById('btn-add-resp').addEventListener('click', adicionarResp);
+      }
 
       document.getElementById('btn-copiar-massa').addEventListener('click', abrirModalLinks);
       document.getElementById('btn-csv').addEventListener('click', exportarCSV);
       document.getElementById('btn-refresh').addEventListener('click', carregar);
 
       Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(chip){
-        chip.addEventListener('click', function(){
-          filtroAtivo = chip.dataset.filtro;
-          renderizar();
-        });
+        chip.addEventListener('click', function(){ filtroAtivo = chip.dataset.filtro; renderizar(); });
       });
 
       Array.prototype.forEach.call(document.querySelectorAll('button[data-copy]'), function(b){
-        b.addEventListener('click', function(){
-          copiarTexto(urlConvite(b.dataset.copy), b);
-        });
+        b.addEventListener('click', function(){ copiarTexto(urlConvite(b.dataset.copy), b); });
       });
-
       Array.prototype.forEach.call(document.querySelectorAll('button[data-cancel]'), function(b){
         b.addEventListener('click', function(){ cancelarConvite(b.dataset.cancel); });
+      });
+    }
+
+    function abrirRespModal(titulo, html, onOk) {
+      document.getElementById('mr-titulo').textContent = titulo;
+      document.getElementById('mr-body').innerHTML = html;
+      modalResp.classList.add('active');
+      if (onOk) onOk();
+    }
+
+    function adicionarResp() {
+      var senhaAuto = gerarSenhaSimples();
+      var html = '<div class="form-group"><label class="form-label">Nome do responsável *</label><input type="text" id="mr-nome" class="form-input" placeholder="Ex: Carlos Promoter"></div>' +
+        '<div class="form-group"><label class="form-label">Senha *</label>' +
+          '<div class="senha-input-wrap">' +
+            '<input type="text" id="mr-senha" class="form-input" value="' + senhaAuto + '">' +
+            '<button type="button" class="btn btn-ghost" id="btn-mr-gerar">🎲</button>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
+          '<button type="button" class="btn btn-primary" id="btn-mr-salvar" style="flex:1;">✓ Adicionar</button>' +
+          '<button type="button" class="btn btn-ghost" id="btn-mr-cancel">Cancelar</button>' +
+        '</div>';
+
+      abrirRespModal('+ Adicionar Responsável', html, function(){
+        document.getElementById('btn-mr-gerar').addEventListener('click', function(){
+          document.getElementById('mr-senha').value = gerarSenhaSimples();
+        });
+        document.getElementById('btn-mr-cancel').addEventListener('click', function(){ modalResp.classList.remove('active'); });
+        document.getElementById('btn-mr-salvar').addEventListener('click', salvarNovoResp);
+      });
+    }
+
+    async function salvarNovoResp() {
+      try {
+        var nome = document.getElementById('mr-nome').value.trim();
+        var senha = document.getElementById('mr-senha').value.trim();
+        if (!nome) { toast('Nome obrigatório', 'error'); return; }
+        if (!senha || senha.length < 4) { toast('Senha mínima 4 caracteres', 'error'); return; }
+        if (!BCRYPT) { toast('bcryptjs não carregou. Recarrega a página.', 'error'); return; }
+
+        var hash = BCRYPT.hashSync(senha, 10);
+        var resp = await sb.from('lotes').update({
+          responsavel_nome: nome,
+          responsavel_login: nome.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,30),
+          responsavel_senha_hash: hash
+        }).eq('id', loteId);
+        if (resp.error) throw new Error(resp.error.message);
+
+        // atualiza lote local pra mostrar nova senha
+        lote.responsavel_nome = nome;
+        lote.responsavel_login = nome.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,30);
+        lote.responsavel_senha_hash = hash;
+
+        modalResp.classList.remove('active');
+        toast('Responsável adicionado ✓', 'success');
+        mostrarSenhaNova(senha);
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
+    function editarResp() {
+      var html = '<div class="form-group"><label class="form-label">Nome do responsável *</label><input type="text" id="mr-nome" class="form-input" value="' + escapeHtml(lote.responsavel_nome || '') + '"></div>' +
+        '<p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:var(--space-md);">💡 Pra trocar a senha, use o botão "🔁 Resetar".</p>' +
+        '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
+          '<button type="button" class="btn btn-primary" id="btn-mr-salvar" style="flex:1;">✓ Salvar</button>' +
+          '<button type="button" class="btn btn-danger" id="btn-mr-remover">Remover</button>' +
+          '<button type="button" class="btn btn-ghost" id="btn-mr-cancel">✕</button>' +
+        '</div>';
+
+      abrirRespModal('Editar Responsável', html, function(){
+        document.getElementById('btn-mr-cancel').addEventListener('click', function(){ modalResp.classList.remove('active'); });
+        document.getElementById('btn-mr-salvar').addEventListener('click', async function(){
+          var nome = document.getElementById('mr-nome').value.trim();
+          if (!nome) { toast('Nome obrigatório', 'error'); return; }
+          var resp = await sb.from('lotes').update({
+            responsavel_nome: nome,
+            responsavel_login: nome.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,30)
+          }).eq('id', loteId);
+          if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+          modalResp.classList.remove('active');
+          toast('Responsável atualizado ✓', 'success');
+          carregar();
+        });
+        document.getElementById('btn-mr-remover').addEventListener('click', async function(){
+          if (!confirm('Remover responsável? O painel ficará inacessível.')) return;
+          var resp = await sb.from('lotes').update({
+            responsavel_nome: null, responsavel_login: null, responsavel_senha_hash: null
+          }).eq('id', loteId);
+          if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+          modalResp.classList.remove('active');
+          toast('Responsável removido', 'success');
+          carregar();
+        });
+      });
+    }
+
+    async function resetarSenha() {
+      if (!confirm('Resetar senha do responsável? A senha atual ficará inválida.')) return;
+      try {
+        if (!BCRYPT) { toast('bcryptjs não carregou. Recarrega a página.', 'error'); return; }
+        var nova = gerarSenhaSimples();
+        var hash = BCRYPT.hashSync(nova, 10);
+        var resp = await sb.from('lotes').update({ responsavel_senha_hash: hash }).eq('id', loteId);
+        if (resp.error) throw new Error(resp.error.message);
+        lote.responsavel_senha_hash = hash;
+        toast('Senha resetada ✓', 'success');
+        mostrarSenhaNova(nova);
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
+    function mostrarSenhaNova(senha) {
+      var html = '<div class="alert alert-success" style="margin-bottom:var(--space-md);">⚠ Anota essa senha agora! Depois de fechar, vira hash e só dá pra resetar de novo.</div>' +
+        '<div class="credencial-box">' +
+          '<div class="credencial-label">Responsável</div>' +
+          '<div class="credencial-valor">👤 ' + escapeHtml(lote.responsavel_nome) + '</div>' +
+        '</div>' +
+        '<div class="credencial-box">' +
+          '<div class="credencial-label">Nova senha</div>' +
+          '<div class="credencial-valor senha">' + escapeHtml(senha) + '</div>' +
+        '</div>' +
+        '<div class="credencial-box">' +
+          '<div class="credencial-label">Link do painel</div>' +
+          '<div class="credencial-valor" style="font-size:0.75rem;">' + escapeHtml(urlPainel()) + '</div>' +
+        '</div>' +
+        '<button type="button" class="btn btn-secondary btn-block" id="btn-wa-credp" style="margin-bottom:8px;">💬 Mandar credenciais no WhatsApp</button>' +
+        '<button type="button" class="btn btn-gold btn-block" id="btn-copy-credp" style="margin-bottom:8px;">📋 Copiar credenciais</button>' +
+        '<button type="button" class="btn btn-primary btn-block" id="btn-fechar-credp">✓ OK, anotei</button>';
+
+      abrirRespModal('🔑 Nova Senha Gerada', html, function(){
+        var msg = msgWAResp(senha);
+        document.getElementById('btn-wa-credp').addEventListener('click', function(){
+          window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+        });
+        document.getElementById('btn-copy-credp').addEventListener('click', function(){
+          copiarTexto(msg, this);
+        });
+        document.getElementById('btn-fechar-credp').addEventListener('click', function(){
+          modalResp.classList.remove('active');
+          carregar();
+        });
       });
     }
 
@@ -277,9 +511,11 @@
     }
 
     document.getElementById('btn-fechar-links').addEventListener('click', function(){ modalLinks.classList.remove('active'); });
+    document.getElementById('btn-fechar-resp').addEventListener('click', function(){ modalResp.classList.remove('active'); });
     document.getElementById('btn-copiar-todos').addEventListener('click', copiarTodosLinks);
     document.getElementById('btn-whatsapp-todos').addEventListener('click', whatsappTodos);
     modalLinks.addEventListener('click', function(e){ if (e.target === modalLinks) modalLinks.classList.remove('active'); });
+    modalResp.addEventListener('click', function(e){ if (e.target === modalResp) modalResp.classList.remove('active'); });
 
     carregar();
   } catch(err) { alert('Erro fatal: ' + err.message); }
