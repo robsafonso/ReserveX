@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calendário · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=1">
+  <link rel="stylesheet" href="assets/styles.css?v=3">
   <script>
     window.addEventListener('error', function(e) {
       alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?'));
@@ -52,7 +52,7 @@
     <div class="topbar-inner">
       <a href="home.html" class="brand">
         <div class="brand-logo">JIMMY<strong>'S</strong></div>
-        <span class="brand-badge">v1.0</span>
+        <span class="brand-badge">v1.1</span>
       </a>
       <div class="user-menu">
         <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
@@ -104,7 +104,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=1"></script>
+  <script src="assets/supabase.js?v=3"></script>
   <script>
 (function(){
   try {
@@ -152,7 +152,7 @@
         configsCache = {};
         (c.data || []).forEach(function(cfg){ configsCache[cfg.data] = cfg; });
 
-        var e = await sb.from('eventos').select('*').eq('tenant_id', TENANT_ID).gte('data', primeiroDia).lte('data', ultimoDia).eq('cancelado', false);
+        var e = await sb.from('eventos').select('*').eq('tenant_id', TENANT_ID).gte('data', primeiroDia).lte('data', ultimoDia).neq('status', 'cancelado');
         if (e.error) throw new Error(e.error.message);
         eventosCache = {};
         (e.data || []).forEach(function(ev){ eventosCache[ev.data] = ev; });
