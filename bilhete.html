@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Bilhete · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=3">
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+  <style>
+    body { background: var(--color-black); padding: var(--space-md) 0; min-height: 100vh; }
+    .ticket-wrap { max-width: 480px; margin: 0 auto; padding: var(--space-md); }
+    .ticket-header { text-align: center; margin-bottom: var(--space-lg); }
+    .ticket { background: var(--color-cream); color: var(--color-black); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+    .ticket-top { padding: var(--space-lg); border-bottom: 2px dashed #999; position: relative; }
+    .ticket-top::before { content: ''; position: absolute; left: -10px; bottom: -12px; width: 22px; height: 22px; background: var(--color-black); border-radius: 50%; }
+    .ticket-top::after { content: ''; position: absolute; right: -10px; bottom: -12px; width: 22px; height: 22px; background: var(--color-black); border-radius: 50%; }
+    .ticket-evento { font-family: var(--font-display); font-size: 1.625rem; color: var(--color-red); margin-bottom: 4px; line-height: 1.1; }
+    .ticket-data { font-size: 0.9375rem; color: #555; font-weight: 600; }
+    .ticket-nome { font-weight: bold; margin-top: var(--space-md); font-size: 1.0625rem; color: var(--color-black); }
+    .ticket-meta { display: flex; justify-content: space-between; font-size: 0.875rem; color: #555; margin-top: 6px; align-items: center; }
+    .ticket-num { font-family: var(--font-display); color: var(--color-red); font-size: 1.5rem; }
+    .ticket-mid { padding: var(--space-xl) var(--space-lg); text-align: center; background: #fff; }
+    .qr-canvas { background: #fff; padding: 12px; border-radius: 8px; max-width: 100%; height: auto; }
+    .ticket-token { font-size: 0.6875rem; color: #888; margin-top: 12px; letter-spacing: 0.15em; font-family: monospace; }
+    .ticket-status { padding: var(--space-md); text-align: center; font-weight: bold; font-size: 0.9375rem; text-transform: uppercase; letter-spacing: 0.1em; }
+    .status-valido { background: #d4f4dd; color: #1a6b2e; }
+    .status-checkin { background: #ffe5cc; color: #b35900; }
+    .status-cancelado { background: #ffd6d6; color: #b30000; }
+    .ticket-footer { padding: var(--space-md) var(--space-lg); background: var(--color-black); color: var(--color-cream); text-align: center; font-size: 0.8125rem; }
+    .countdown-box { background: var(--color-gold); color: var(--color-black); padding: var(--space-xl) var(--space-lg); text-align: center; }
+    .countdown-num { font-family: var(--font-display); font-size: 4rem; line-height: 1; }
+    .countdown-label { font-size: 0.9375rem; margin-top: 4px; font-weight: bold; }
+    .countdown-msg { font-size: 0.8125rem; margin-top: 12px; opacity: 0.85; }
+    .empty-state { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-xl); text-align: center; color: var(--text-secondary); }
+    .empty-icon { font-size: 4rem; margin-bottom: var(--space-md); }
+    .save-link { background: var(--bg-tertiary); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); margin-top: var(--space-md); }
+    .save-link-l { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .save-link-v { word-break: break-all; color: var(--color-gold); font-size: 0.8125rem; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <div class="ticket-wrap">
+    <div class="ticket-header">
+      <div style="font-family:var(--font-display);font-size:2rem;color:var(--color-cream);letter-spacing:0.1em;">JIMMY<span style="color:var(--color-red);">'S</span></div>
+      <div style="color:var(--text-muted);font-size:0.75rem;letter-spacing:0.15em;margin-top:4px;">SEU BILHETE DIGITAL</div>
+    </div>
+    <div id="conteudo">
+      <div style="text-align:center;padding:var(--space-2xl);">
+        <div class="spinner" style="margin:0 auto;"></div>
+        <p style="color:var(--text-muted);margin-top:var(--space-md);">Carregando bilhete...</p>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=3"></script>
+  <script>
+(function(){
+  try {
+    var token = new URLSearchParams(window.location.search).get('token');
+    if (!token) { renderErro('🎟️', 'Token não fornecido', 'Esse link parece estar incompleto.'); return; }
+
+    function escapeHtml(s){if(s==null)return '';return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+    function diasEntre(dataIso) {
+      var hoje = new Date(); hoje.setHours(0,0,0,0);
+      var alvo = new Date(dataIso + 'T00:00:00');
+      return Math.ceil((alvo - hoje) / (1000 * 60 * 60 * 24));
+    }
+
+    function renderErro(icon, titulo, msg) {
+      document.getElementById('conteudo').innerHTML = '<div class="empty-state"><div class="empty-icon">' + icon + '</div><div style="font-family:var(--font-display);font-size:1.25rem;color:var(--color-cream);margin-bottom:8px;">' + titulo + '</div><p style="font-size:0.875rem;">' + msg + '</p></div>';
+    }
+
+    async function carregar() {
+      try {
+        var resp = await sb.from('convites')
+          .select('*, lotes(nome, data_evento, bilhete_dias_antes, eventos(nome, data, hora_inicio, hora_fim, bilhete_dias_antes)), reservas!convites_reserva_id_fkey(qtd_pessoas, status, clientes(nome_completo, telefone))')
+          .eq('token', token)
+          .maybeSingle();
+        if (resp.error) throw new Error(resp.error.message);
+        if (!resp.data) { renderErro('🎟️', 'Bilhete não encontrado', 'Token inválido ou expirado.'); return; }
+        renderizar(resp.data);
+      } catch(err) { renderErro('⚠️', 'Erro ao carregar', err.message); }
+    }
+
+    function renderizar(c) {
+      var lote = c.lotes || {};
+      var ev = lote.eventos || {};
+      var nomeEvento = ev.nome || lote.nome || 'Evento';
+      var dataEvento = ev.data || lote.data_evento;
+      // Prioridade: bilhete_dias_antes do LOTE > do EVENTO
+      var bilheteDias = (lote.bilhete_dias_antes != null && lote.bilhete_dias_antes > 0)
+        ? lote.bilhete_dias_antes
+        : (ev.bilhete_dias_antes || 0);
+      var horaStr = '';
+      if (ev.hora_inicio) {
+        horaStr = ev.hora_inicio.substring(0,5);
+        if (ev.hora_fim) horaStr += ' – ' + ev.hora_fim.substring(0,5);
+      }
+
+      // Convite cancelado
+      if (c.status === 'cancelado') {
+        document.getElementById('conteudo').innerHTML =
+          '<div class="ticket">' +
+            '<div class="ticket-top"><div class="ticket-evento">' + escapeHtml(nomeEvento) + '</div><div class="ticket-data">📅 ' + fmtData(dataEvento) + '</div></div>' +
+            '<div class="ticket-status status-cancelado">✗ Convite Cancelado</div>' +
+            '<div class="ticket-footer">Entre em contato com quem te enviou o convite.</div>' +
+          '</div>';
+        return;
+      }
+
+      // Sem reserva = não foi confirmado ainda
+      if (!c.reserva_id || !c.reservas) {
+        document.getElementById('conteudo').innerHTML =
+          '<div class="empty-state">' +
+            '<div class="empty-icon">📝</div>' +
+            '<div style="font-family:var(--font-display);font-size:1.25rem;color:var(--color-cream);margin-bottom:8px;">Cadastro não realizado</div>' +
+            '<p style="font-size:0.875rem;margin-bottom:var(--space-md);">Esse convite ainda não foi confirmado. Confirme primeiro pra ter seu bilhete.</p>' +
+            '<a href="cadastro.html?token=' + encodeURIComponent(c.token) + '" class="btn btn-primary">Confirmar agora →</a>' +
+          '</div>';
+        return;
+      }
+
+      var cliente = c.reservas.clientes || {};
+      var diasRestantes = diasEntre(dataEvento);
+
+      // Bilhete ainda não liberado (faltam mais dias do que bilhete_dias_antes permite)
+      if (bilheteDias > 0 && diasRestantes > bilheteDias) {
+        var diasPraLiberar = diasRestantes - bilheteDias;
+        document.getElementById('conteudo').innerHTML =
+          '<div class="ticket">' +
+            '<div class="ticket-top">' +
+              '<div class="ticket-evento">' + escapeHtml(nomeEvento) + '</div>' +
+              '<div class="ticket-data">📅 ' + fmtData(dataEvento) + (horaStr ? ' · 🕐 ' + horaStr : '') + '</div>' +
+              '<div class="ticket-nome">' + escapeHtml(cliente.nome_completo || 'Convidado') + '</div>' +
+              '<div class="ticket-meta"><span>👥 ' + c.reservas.qtd_pessoas + ' pessoa(s)</span><span class="ticket-num">#' + c.numero_convite + '</span></div>' +
+            '</div>' +
+            '<div class="countdown-box">' +
+              '<div class="countdown-num">' + diasPraLiberar + '</div>' +
+              '<div class="countdown-label">' + (diasPraLiberar === 1 ? 'dia pro QR aparecer' : 'dias pro QR aparecer') + '</div>' +
+              '<p class="countdown-msg">📌 Salve esse link e volte em ' + diasPraLiberar + ' dia(s) pra ver seu QR de entrada.</p>' +
+            '</div>' +
+            '<div class="ticket-footer">Jimmy\'s Bar · Londrina PR<br>📞 43 98412-9883 · 📍 @jimmys.londrina</div>' +
+          '</div>' +
+          '<div class="save-link">' +
+            '<div class="save-link-l">🔗 Link permanente do seu bilhete</div>' +
+            '<div class="save-link-v">' + escapeHtml(window.location.href) + '</div>' +
+          '</div>';
+        return;
+      }
+
+      // Bilhete liberado — mostra QR
+      var statusHtml;
+      if (c.checkin_em) {
+        statusHtml = '<div class="ticket-status status-checkin">✓ Check-in feito em ' + fmtDataHora(c.checkin_em) + '</div>';
+      } else {
+        statusHtml = '<div class="ticket-status status-valido">✓ Bilhete válido — apresente na portaria</div>';
+      }
+
+      document.getElementById('conteudo').innerHTML =
+        '<div class="ticket">' +
+          '<div class="ticket-top">' +
+            '<div class="ticket-evento">' + escapeHtml(nomeEvento) + '</div>' +
+            '<div class="ticket-data">📅 ' + fmtData(dataEvento) + (horaStr ? ' · 🕐 ' + horaStr : '') + '</div>' +
+            '<div class="ticket-nome">' + escapeHtml(cliente.nome_completo || 'Convidado') + '</div>' +
+            '<div class="ticket-meta"><span>👥 ' + c.reservas.qtd_pessoas + ' pessoa(s)</span><span class="ticket-num">#' + c.numero_convite + '</span></div>' +
+          '</div>' +
+          '<div class="ticket-mid">' +
+            '<canvas id="qr-canvas" class="qr-canvas"></canvas>' +
+            '<div class="ticket-token">CÓD: ' + escapeHtml(c.token) + '</div>' +
+          '</div>' +
+          statusHtml +
+          '<div class="ticket-footer">Jimmy\'s Bar · Londrina PR<br>📞 43 98412-9883 · 📍 @jimmys.londrina</div>' +
+        '</div>' +
+        '<div class="save-link">' +
+          '<div class="save-link-l">🔗 Link permanente</div>' +
+          '<div class="save-link-v">' + escapeHtml(window.location.href) + '</div>' +
+        '</div>';
+
+      // Gera QR
+      try {
+        new QRious({
+          element: document.getElementById('qr-canvas'),
+          value: c.token,
+          size: 260,
+          background: '#ffffff',
+          foreground: '#000000',
+          level: 'M'
+        });
+      } catch(e) { console.error('Erro QR:', e); }
+    }
+
+    carregar();
+  } catch(err) {
+    document.getElementById('conteudo').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Erro fatal: ' + err.message + '</p></div>';
+  }
+})();
+  </script>
+</body>
+</html>
