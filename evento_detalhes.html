@@ -21,9 +21,10 @@
     .stat-card-e.gold { border-top: 3px solid var(--color-gold); }
     .stat-card-e.green { border-top: 3px solid var(--color-success); }
     .stat-card-e.blue { border-top: 3px solid var(--color-info); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); }
     .stat-v { font-family: var(--font-display); font-size: 1.75rem; line-height: 1; color: var(--color-cream); }
     .stat-l { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
-    .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); }
+    .secao-titulo { font-family: var(--font-display); color: var(--color-gold); letter-spacing: 0.05em; margin-bottom: var(--space-md); text-transform: uppercase; font-size: 1rem; padding-bottom: 8px; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center; }
     .reserva-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-sm); }
     .reserva-card.confirmada { border-left: 3px solid var(--color-success); }
     .reserva-card.em_uso { border-left: 3px solid var(--color-info); }
@@ -33,16 +34,26 @@
     .reserva-info { flex: 1; min-width: 0; }
     .reserva-nome { font-weight: 600; color: var(--color-cream); font-size: 1rem; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .reserva-meta { display: flex; gap: var(--space-md); font-size: 0.8125rem; color: var(--text-muted); flex-wrap: wrap; }
+    .lote-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-sm); cursor: pointer; }
+    .lote-card.ativo { border-left: 3px solid var(--color-success); }
+    .lote-card.cancelado { border-left: 3px solid var(--color-error); opacity: 0.6; }
+    .lote-card.encerrado { border-left: 3px solid #404040; opacity: 0.7; }
+    .lote-card:active { transform: scale(0.99); }
+    .lote-nome { font-family: var(--font-display); color: var(--color-cream); font-size: 1.0625rem; letter-spacing: 0.03em; margin-bottom: 4px; }
+    .lote-meta { display: flex; gap: var(--space-md); font-size: 0.8125rem; color: var(--text-muted); flex-wrap: wrap; }
+    .progresso-bar { height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+    .progresso-fill { height: 100%; background: linear-gradient(90deg, var(--color-success), var(--color-gold)); transition: width 0.3s; }
     .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
     .modal-backdrop.active { display: flex; }
     .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-default); }
     .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
     .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
-    .empty { text-align: center; padding: var(--space-2xl) var(--space-md); color: var(--text-muted); }
+    .empty { text-align: center; padding: var(--space-xl) var(--space-md); color: var(--text-muted); }
     .empty-icon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.4; }
     .vincular-card { background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-sm); cursor: pointer; }
     .vincular-card:active { border-color: var(--color-gold); transform: scale(0.99); }
+    .btn-criar-lote { background: var(--color-gold); color: #0d0d0d; border: none; padding: 6px 12px; border-radius: var(--radius-md); font-size: 0.75rem; font-weight: 600; cursor: pointer; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -87,6 +98,7 @@
     var evento = null;
     var reservasVinculadas = [];
     var reservasDisponiveis = [];
+    var lotesVinculados = [];
 
     var modalVincular = document.getElementById('modal-vincular');
 
@@ -116,6 +128,13 @@
           .order('created_at', { ascending: false });
         reservasDisponiveis = d.data || [];
 
+        var l = await sb.from('lotes')
+          .select('*')
+          .eq('tenant_id', TENANT_ID)
+          .eq('evento_id', eventoId)
+          .order('created_at', { ascending: false });
+        lotesVinculados = l.data || [];
+
         renderizar();
       } catch(err) { document.getElementById('conteudo').innerHTML = '<div class="alert alert-error">' + err.message + '</div>'; }
     }
@@ -126,6 +145,10 @@
       var capacidade = evento.capacidade_max || null;
       var percVendido = capacidade ? Math.round((totalPessoas / capacidade) * 100) : null;
       var valorPrevisto = (evento.valor_couvert || 0) * totalPessoas;
+
+      var lotesAtivos = lotesVinculados.filter(function(l){return l.status === 'ativo';});
+      var totalConvites = lotesAtivos.reduce(function(a,b){return a + (b.total_convites||0);}, 0);
+      var totalConvitesUsados = lotesAtivos.reduce(function(a,b){return a + (b.usados||0);}, 0);
 
       var bannerHtml = evento.banner_url
         ? '<div class="banner-evento" style="background-image:url(' + escapeHtml(evento.banner_url) + ')"></div>'
@@ -153,9 +176,33 @@
       var statsHtml = '<div class="stats-row">' +
         '<div class="stat-card-e green"><div class="stat-v">' + ativas.length + '</div><div class="stat-l">Reservas</div></div>' +
         '<div class="stat-card-e blue"><div class="stat-v">' + totalPessoas + '</div><div class="stat-l">Pessoas</div></div>' +
-        (capacidade ? '<div class="stat-card-e gold"><div class="stat-v">' + percVendido + '%</div><div class="stat-l">Vendido</div></div>' : '<div class="stat-card-e"><div class="stat-v">—</div><div class="stat-l">Sem limite</div></div>') +
+        '<div class="stat-card-e gold"><div class="stat-v">' + totalConvitesUsados + '/' + totalConvites + '</div><div class="stat-l">Convites</div></div>' +
         '<div class="stat-card-e"><div class="stat-v">R$' + valorPrevisto.toFixed(0) + '</div><div class="stat-l">Couvert estim.</div></div>' +
       '</div>';
+
+      // Seção de Lotes
+      var lotesHtml = '<div class="secao-titulo"><span>🎟️ Lotes de Convites</span><a href="lotes.html?evento=' + eventoId + '&data=' + evento.data + '" class="btn-criar-lote">+ Criar Lote</a></div>';
+      if (lotesVinculados.length === 0) {
+        lotesHtml += '<div class="empty"><div class="empty-icon">🎟️</div><p>Nenhum lote vinculado.</p><p style="font-size:0.875rem;margin-top:8px;">Use "+ Criar Lote" pra gerar convites em massa.</p></div>';
+      } else {
+        lotesVinculados.forEach(function(l){
+          var perc = l.total_convites > 0 ? Math.round((l.usados / l.total_convites) * 100) : 0;
+          var statusBd = l.status === 'ativo' ? 'green' : l.status === 'cancelado' ? 'red' : 'gray';
+          lotesHtml += '<div class="lote-card ' + l.status + '" data-lote="' + l.id + '">' +
+            '<div class="reserva-row">' +
+              '<div class="reserva-info">' +
+                '<div class="lote-nome">' + escapeHtml(l.nome) + '</div>' +
+                '<div class="lote-meta">' +
+                  '<span>🎟️ ' + l.usados + ' / ' + l.total_convites + '</span>' +
+                  '<span>' + perc + '%</span>' +
+                '</div>' +
+                '<div class="progresso-bar"><div class="progresso-fill" style="width:' + perc + '%"></div></div>' +
+              '</div>' +
+              '<span class="badge badge-' + statusBd + '">' + l.status + '</span>' +
+            '</div>' +
+          '</div>';
+        });
+      }
 
       var toolbarHtml = '<div class="toolbar">' +
         '<button type="button" class="btn btn-primary" id="btn-vincular">+ Vincular Reserva</button>' +
@@ -163,14 +210,15 @@
         '<button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻</button>' +
       '</div>';
 
-      var listaHtml = '<h3 style="font-family:var(--font-display);color:var(--color-gold);letter-spacing:0.05em;margin-bottom:var(--space-md);text-transform:uppercase;font-size:1rem;">Pessoas Confirmadas</h3>';
+      var listaHtml = '<div class="secao-titulo"><span>👥 Pessoas Confirmadas</span></div>';
       if (reservasVinculadas.length === 0) {
-        listaHtml += '<div class="empty"><div class="empty-icon">📋</div><p>Ninguém confirmado ainda.</p><p style="font-size:0.875rem;margin-top:8px;">Use "+ Vincular Reserva" pra adicionar reservas que já existem dessa data.</p></div>';
+        listaHtml += '<div class="empty"><div class="empty-icon">📋</div><p>Ninguém confirmado ainda.</p><p style="font-size:0.875rem;margin-top:8px;">Use "+ Vincular Reserva" ou os lotes acima pra confirmar pessoas.</p></div>';
       } else {
         reservasVinculadas.forEach(function(r){
           var nome = r.clientes ? r.clientes.nome_completo : '(sem cliente)';
           var tel = r.clientes ? fmtTelefone(r.clientes.telefone) : '';
           var statusLabel = r.status === 'em_uso' ? 'em uso' : r.status === 'no_show' ? 'no-show' : r.status;
+          var origemIcon = r.lote_id ? '🎟️ convite' : (r.origem || '');
           listaHtml += '<div class="reserva-card ' + r.status + '">' +
             '<div class="reserva-row">' +
               '<div class="reserva-info">' +
@@ -179,24 +227,28 @@
                   '<span>👥 ' + r.qtd_pessoas + '</span>' +
                   (tel ? '<span>📞 ' + tel + '</span>' : '') +
                   (r.mesas ? '<span>🪑 ' + escapeHtml(r.mesas.nome) + '</span>' : '') +
+                  (origemIcon ? '<span>📍 ' + origemIcon + '</span>' : '') +
                 '</div>' +
               '</div>' +
               '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' +
                 '<span class="badge badge-' + (r.status === 'pendente' ? 'gold' : r.status === 'confirmada' ? 'green' : r.status === 'em_uso' ? 'blue' : 'gray') + '">' + statusLabel + '</span>' +
-                '<button type="button" class="btn btn-ghost btn-sm" data-id="' + r.id + '">Desvincular</button>' +
+                (!r.lote_id ? '<button type="button" class="btn btn-ghost btn-sm" data-id="' + r.id + '">Desvincular</button>' : '') +
               '</div>' +
             '</div>' +
           '</div>';
         });
       }
 
-      document.getElementById('conteudo').innerHTML = bannerHtml + infoHtml + statsHtml + toolbarHtml + listaHtml;
+      document.getElementById('conteudo').innerHTML = bannerHtml + infoHtml + statsHtml + lotesHtml + toolbarHtml + listaHtml;
 
       document.getElementById('btn-vincular').addEventListener('click', abrirVincular);
       document.getElementById('btn-csv').addEventListener('click', exportarCSV);
       document.getElementById('btn-refresh').addEventListener('click', carregar);
       Array.prototype.forEach.call(document.querySelectorAll('button[data-id]'), function(b){
         b.addEventListener('click', function(){ desvincular(b.dataset.id); });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.lote-card[data-lote]'), function(c){
+        c.addEventListener('click', function(){ window.location.href = 'lote_detalhes.html?id=' + c.dataset.lote; });
       });
     }
 
@@ -244,10 +296,10 @@
     }
 
     function exportarCSV() {
-      var headers = ['Nome','Telefone','Instagram','CPF','Pessoas','Mesa','Status'];
+      var headers = ['Nome','Telefone','Instagram','CPF','Pessoas','Mesa','Status','Origem'];
       var linhas = reservasVinculadas.map(function(r){
         var c = r.clientes || {};
-        return [c.nome_completo || '', fmtTelefone(c.telefone || ''), c.instagram || '', c.cpf || '', r.qtd_pessoas, r.mesas ? r.mesas.nome : '', r.status];
+        return [c.nome_completo || '', fmtTelefone(c.telefone || ''), c.instagram || '', c.cpf || '', r.qtd_pessoas, r.mesas ? r.mesas.nome : '', r.status, r.lote_id ? 'convite' : (r.origem || '')];
       });
       var csv = [headers].concat(linhas).map(function(l){ return l.map(function(v){ return '"' + String(v).replace(/"/g,'""') + '"'; }).join(','); }).join('\n');
       var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
