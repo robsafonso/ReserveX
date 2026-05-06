@@ -45,6 +45,8 @@
     .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
     .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
     .links-textarea { width: 100%; min-height: 220px; background: var(--bg-tertiary); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); color: var(--color-cream); font-size: 0.8125rem; font-family: monospace; resize: vertical; word-break: break-all; }
+    .empty { text-align: center; padding: var(--space-2xl) var(--space-md); color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.4; }
   </style>
 </head>
 <body>
@@ -105,7 +107,7 @@
         lote = l.data;
 
         var c = await sb.from('convites')
-          .select('*, reservas(qtd_pessoas, status, clientes(nome_completo, telefone))')
+          .select('*, reservas!convites_reserva_id_fkey(qtd_pessoas, status, clientes(nome_completo, telefone))')
           .eq('lote_id', loteId)
           .order('numero_convite', { ascending: true });
         if (c.error) throw new Error(c.error.message);
@@ -241,10 +243,10 @@
 
     function whatsappTodos() {
       var disponiveis = convitesCache.filter(function(c){return c.status === 'disponivel';});
-      var msg = '🇺🇸🔥 *Convite Jimmy\'s Bar*\n\n' + escapeHtml(lote.nome) + '\n📅 ' + fmtData(lote.data_evento) + '\n\n';
+      var msg = '🇺🇸🔥 Convite Jimmy\'s Bar\n\n' + lote.nome + '\n📅 ' + fmtData(lote.data_evento) + '\n\n';
       msg += 'Cada link é único e individual. Distribua entre os convidados:\n\n';
-      msg += disponiveis.map(function(c){ return '*' + c.numero_convite + '.* ' + urlConvite(c.token); }).join('\n\n');
-      window.open('https://wa.me/?text=' + encodeURIComponent(msg.replace(/\*/g, '')), '_blank');
+      msg += disponiveis.map(function(c){ return c.numero_convite + '. ' + urlConvite(c.token); }).join('\n\n');
+      window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
     }
 
     async function cancelarConvite(id) {
