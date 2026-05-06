@@ -61,6 +61,11 @@
     .legenda-dot { width: 12px; height: 12px; border-radius: 3px; border: 2px solid; }
     .evento-disponivel { background: linear-gradient(135deg, rgba(200,16,46,0.15), rgba(201,151,60,0.15)); border: 1px solid var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+    .qtd-stepper { display: inline-flex; align-items: center; gap: 0; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: var(--radius-md); overflow: hidden; }
+    .qtd-stepper button { background: transparent; border: none; color: var(--color-cream); width: 36px; height: 36px; font-size: 1.25rem; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+    .qtd-stepper button:active { background: var(--color-red); }
+    .qtd-stepper button:disabled { opacity: 0.3; cursor: not-allowed; }
+    .qtd-stepper .qtd-valor { min-width: 48px; text-align: center; font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); padding: 0 4px; line-height: 36px; }
   </style>
 </head>
 <body>
@@ -181,7 +186,7 @@
     function escapeHtml(str){if(str===null||str===undefined)return ''; return String(str).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
     function fmtCpf(cpf){if(!cpf)return ''; var d=cpf.replace(/\D/g,''); if(d.length!==11)return cpf; return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);}
     function aplicarMascaraCPF(input){input.addEventListener('input',function(){var v=input.value.replace(/\D/g,'').slice(0,11);if(v.length>9)v=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6,9)+'-'+v.slice(9);else if(v.length>6)v=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6);else if(v.length>3)v=v.slice(0,3)+'.'+v.slice(3);input.value=v;});}
-    function aplicarMascaraTel(input){input.addEventListener('input',function(){var v=input.value.replace(/\D/g,'').slice(0,11);if(v.length>6)v='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);else if(v.length>2)v='('+v.slice(0,2)+') '+v.slice(2);else if(v.length>0)v='('+v;input.value=v;});}
+    function aplicarMascaraTel(input){input.addEventListener('input',function(){var v=input.value.replace(/\D/g,'').slice(0,11);if(v.length>6)v='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);else if(v.length>2)v='('+v.slice(0,2)+') '+v.slice(2);else if(v.length>0)v='('+v;i.value=v;});}
 
     document.getElementById('data-filtro').value = dataFiltro;
 
@@ -399,11 +404,11 @@
       }
 
       var mesaInfo = '';
-      var podeMudarMesa = ['pendente','confirmada','em_uso'].indexOf(r.status) >= 0 && r.clientes;
+      var podeMudar = ['pendente','confirmada','em_uso'].indexOf(r.status) >= 0 && r.clientes;
       if (r.mesas) {
         mesaInfo = '<div class="mesa-pick-info tem"><div><strong style="color:var(--color-cream);">🪑 Mesa ' + escapeHtml(r.mesas.nome) + '</strong></div>' +
-          (podeMudarMesa ? '<button type="button" class="btn btn-ghost btn-sm" id="btn-trocar-mesa">Trocar</button>' : '') + '</div>';
-      } else if (podeMudarMesa) {
+          (podeMudar ? '<button type="button" class="btn btn-ghost btn-sm" id="btn-trocar-mesa">Trocar</button>' : '') + '</div>';
+      } else if (podeMudar) {
         mesaInfo = '<div class="mesa-pick-info"><div style="color:var(--color-warning);">⚠ Sem mesa atribuída</div>' +
           '<button type="button" class="btn btn-gold btn-sm" id="btn-trocar-mesa">🪑 Alocar</button></div>';
       }
@@ -413,7 +418,7 @@
       if (r.eventos) {
         eventoInfo = '<div class="evento-disponivel"><strong style="color:var(--color-gold);">🎤 ' + escapeHtml(r.eventos.nome) + '</strong>' +
           ' <a href="evento_detalhes.html?id=' + r.evento_id + '" class="btn btn-ghost btn-sm" style="float:right;">Ver evento →</a></div>';
-      } else if (evsData.length > 0 && podeMudarMesa) {
+      } else if (evsData.length > 0 && podeMudar) {
         eventoInfo = '<div class="evento-disponivel"><div style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:8px;">⚠ Esse dia tem evento. Vincular?</div>';
         evsData.forEach(function(e){
           eventoInfo += '<button type="button" class="btn btn-gold btn-sm" data-vincular-ev="' + e.id + '" style="margin-right:6px;margin-bottom:4px;">+ ' + escapeHtml(e.nome) + '</button>';
@@ -433,6 +438,18 @@
         acoes += '<button type="button" class="btn btn-primary acao-btn" id="btn-finalizar">✓ Finalizar</button>';
       }
 
+      // STEPPER de pessoas (- N +) - mais fluido que o botão "Mudar"
+      var pessoasHtml;
+      if (podeMudar) {
+        pessoasHtml = '<div class="qtd-stepper">' +
+          '<button type="button" id="btn-qtd-menos" ' + (r.qtd_pessoas <= 1 ? 'disabled' : '') + '>−</button>' +
+          '<span class="qtd-valor" id="qtd-valor">' + r.qtd_pessoas + '</span>' +
+          '<button type="button" id="btn-qtd-mais">+</button>' +
+        '</div>';
+      } else {
+        pessoasHtml = '<div>' + r.qtd_pessoas + '</div>';
+      }
+
       document.getElementById('mr-body').innerHTML =
         linkInfo +
         '<div class="form-group"><label class="form-label">Cliente</label><div style="font-size:1rem;color:var(--color-cream);font-weight:600;">' + escapeHtml(nome) + '</div></div>' +
@@ -440,7 +457,7 @@
         (cpf ? '<div class="form-group"><label class="form-label">CPF</label><div>' + fmtCpf(cpf) + '</div></div>' : '') +
         (ig ? '<div class="form-group"><label class="form-label">Instagram</label><div>' + escapeHtml(ig) + '</div></div>' : '') +
         '<div class="form-group"><label class="form-label">Data</label><div>' + fmtData(r.data) + '</div></div>' +
-        '<div class="form-group"><label class="form-label">Pessoas</label><div>' + r.qtd_pessoas + (podeMudarMesa ? ' <button type="button" class="btn btn-ghost btn-sm" id="btn-mudar-qtd" style="margin-left:8px;">Mudar</button>' : '') + '</div></div>' +
+        '<div class="form-group"><label class="form-label">Pessoas</label>' + pessoasHtml + '</div>' +
         '<div class="form-group"><label class="form-label">Status</label><div><span class="badge badge-' + (r.status === 'pendente' ? 'gold' : r.status === 'confirmada' ? 'green' : r.status === 'em_uso' ? 'blue' : 'gray') + '">' + statusLabel + '</span></div></div>' +
         (r.observacoes ? '<div class="form-group"><label class="form-label">Observações</label><div>' + escapeHtml(r.observacoes) + '</div></div>' : '') +
         eventoInfo + mesaInfo +
@@ -458,13 +475,16 @@
         });
       });
 
-      var btnQtd = document.getElementById('btn-mudar-qtd');
-      if (btnQtd) btnQtd.addEventListener('click', function(){
-        var nova = prompt('Nova quantidade de pessoas:', r.qtd_pessoas);
-        if (nova === null) return;
-        var n = parseInt(nova, 10);
-        if (!n || n < 1) { toast('Quantidade inválida', 'error'); return; }
-        alterarQtd(n);
+      // Stepper de pessoas
+      var btnMenos = document.getElementById('btn-qtd-menos');
+      var btnMais = document.getElementById('btn-qtd-mais');
+      if (btnMenos) btnMenos.addEventListener('click', function(){
+        var atual = parseInt(document.getElementById('qtd-valor').textContent, 10);
+        if (atual > 1) alterarQtd(atual - 1);
+      });
+      if (btnMais) btnMais.addEventListener('click', function(){
+        var atual = parseInt(document.getElementById('qtd-valor').textContent, 10);
+        alterarQtd(atual + 1);
       });
 
       Array.prototype.forEach.call(document.querySelectorAll('button[data-vincular-ev]'), function(b){
@@ -494,11 +514,21 @@
 
     async function alterarQtd(novaQtd) {
       if (!reservaSelecionada) return;
+      // Atualização otimista visual
+      var valorEl = document.getElementById('qtd-valor');
+      if (valorEl) valorEl.textContent = novaQtd;
+      var btnMenos = document.getElementById('btn-qtd-menos');
+      if (btnMenos) btnMenos.disabled = novaQtd <= 1;
+      reservaSelecionada.qtd_pessoas = novaQtd;
+
       var resp = await sb.from('reservas').update({ qtd_pessoas: novaQtd }).eq('id', reservaSelecionada.id);
       if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
-      toast('Quantidade atualizada ✓', 'success');
-      modalReserva.classList.remove('active');
-      carregar();
+      // Atualiza cache silenciosamente (sem fechar modal)
+      var idx = reservasCache.findIndex(function(x){return x.id === reservaSelecionada.id;});
+      if (idx >= 0) reservasCache[idx].qtd_pessoas = novaQtd;
+      // Atualiza stats no fundo
+      renderizar();
+      // Reabre modal pra refletir contexto novo (status, mesa)
     }
 
     async function vincularEvento(eventoId) {
