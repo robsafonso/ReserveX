@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fila · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=2">
+  <link rel="stylesheet" href="assets/styles.css?v=3">
   <script>
     window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
     window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
@@ -15,7 +15,7 @@
     .stat-pill-v { font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: var(--color-cream); }
     .stat-pill-l { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
     .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); align-items: center; }
-    .fila-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-left: 4px solid var(--color-success); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-sm); display: flex; gap: var(--space-md); align-items: center; }
+    .fila-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-left: 4px solid var(--color-green); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-sm); display: flex; gap: var(--space-md); align-items: center; }
     .fila-card.amarelo { border-left-color: var(--color-warning); }
     .fila-card.vermelho { border-left-color: var(--color-error); }
     .fila-num { font-family: var(--font-display); font-size: 2rem; line-height: 1; color: var(--color-gold); width: 40px; text-align: center; }
@@ -35,7 +35,7 @@
     .empty { text-align: center; padding: var(--space-2xl) var(--space-md); color: var(--text-muted); }
     .empty-icon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.4; }
     .step-title { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.05em; color: var(--color-gold); margin-bottom: var(--space-md); padding-bottom: 8px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
-    .cliente-encontrado { background: rgba(45, 106, 79, 0.15); border: 1px solid var(--color-success); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+    .cliente-encontrado { background: rgba(42, 171, 71, 0.15); border: 1px solid var(--color-green); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
     .cliente-novo-aviso { background: rgba(201, 151, 60, 0.1); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
     .setor-grupo { margin-bottom: var(--space-md); }
     .setor-titulo { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
@@ -43,7 +43,7 @@
     .mesa-grid-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
     .mesa-opt { padding: 10px 4px; background: var(--bg-tertiary); border: 2px solid var(--border-default); border-radius: var(--radius-md); cursor: pointer; text-align: center; }
     .mesa-opt:active { transform: scale(0.97); }
-    .mesa-opt.ideal { border-color: var(--color-success); background: rgba(45, 106, 79, 0.08); }
+    .mesa-opt.ideal { border-color: var(--color-green); background: rgba(42, 171, 71, 0.08); }
     .mesa-opt.apertado { border-color: var(--color-warning); background: rgba(201, 151, 60, 0.06); }
     .mesa-opt.sel { border-color: var(--color-gold) !important; background: rgba(201, 151, 60, 0.25) !important; }
     .mesa-opt-nome { font-family: var(--font-display); font-size: 1.25rem; color: var(--color-cream); line-height: 1; }
@@ -59,7 +59,7 @@
     <div class="topbar-inner">
       <a href="home.html" class="brand">
         <div class="brand-logo">JIMMY<strong>'S</strong></div>
-        <span class="brand-badge">v1.0</span>
+        <span class="brand-badge">v1.1</span>
       </a>
       <div class="user-menu">
         <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
@@ -99,7 +99,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=2"></script>
+  <script src="assets/supabase.js?v=3"></script>
   <script>
 (function(){
   try {
@@ -137,7 +137,7 @@
         if (m.error) throw new Error(m.error.message);
         mesasCache = m.data || [];
 
-        var hoje = new Date().toISOString().split('T')[0];
+        var hoje = hojeISO();
         var r = await sb.from('reservas').select('mesa_id, status').eq('tenant_id', TENANT_ID).eq('data', hoje).in('status', ['pendente','confirmada','em_uso']);
         reservasHoje = r.data || [];
 
@@ -324,7 +324,7 @@
 
       var html = '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Cliente: <strong style="color:var(--color-cream);">' + escapeHtml(filaSelecionada.clientes.nome_completo) + '</strong> · ' + qtd + ' pessoa(s)</p>' +
         '<div class="legenda-cores">' +
-          '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-success)"></span>Cabe folgado (≥' + qtd + ')</div>' +
+          '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-green)"></span>Cabe folgado (≥' + qtd + ')</div>' +
           '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-warning)"></span>Apertado (puxar cadeira)</div>' +
         '</div>';
       var temAlguma = false;
@@ -373,7 +373,7 @@
     async function confirmarAlocacao() {
       if (!mesaPickerSelecionada || !filaSelecionada) return;
       try {
-        var hoje = new Date().toISOString().split('T')[0];
+        var hoje = hojeISO();
         var resReserva = await sb.from('reservas').insert({
           tenant_id: TENANT_ID,
           cliente_id: filaSelecionada.cliente_id,
