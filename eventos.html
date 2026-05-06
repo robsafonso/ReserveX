@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Eventos · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=2">
+  <link rel="stylesheet" href="assets/styles.css?v=3">
   <script>
     window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
     window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
@@ -19,7 +19,7 @@
     .chip { padding: 6px 14px; border-radius: var(--radius-full); background: var(--bg-tertiary); border: 1px solid var(--border-default); color: var(--text-secondary); font-size: 0.8125rem; cursor: pointer; white-space: nowrap; }
     .chip.active { background: var(--color-red); color: #fff; border-color: var(--color-red); }
     .evento-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); margin-bottom: var(--space-sm); overflow: hidden; }
-    .evento-card.ativo { border-left: 4px solid var(--color-success); }
+    .evento-card.ativo { border-left: 4px solid var(--color-green); }
     .evento-card.rascunho { border-left: 4px solid var(--color-warning); opacity: 0.85; }
     .evento-card.cancelado { border-left: 4px solid var(--color-error); opacity: 0.6; }
     .evento-card.encerrado { border-left: 4px solid #404040; opacity: 0.7; }
@@ -47,7 +47,7 @@
     <div class="topbar-inner">
       <a href="home.html" class="brand">
         <div class="brand-logo">JIMMY<strong>'S</strong></div>
-        <span class="brand-badge">v1.0</span>
+        <span class="brand-badge">v1.1</span>
       </a>
       <div class="user-menu">
         <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
@@ -94,7 +94,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=2"></script>
+  <script src="assets/supabase.js?v=3"></script>
   <script>
 (function(){
   try {
@@ -119,14 +119,14 @@
     }
 
     function atualizarStats() {
-      var hoje = new Date().toISOString().split('T')[0];
+      var hoje = hojeISO();
       document.getElementById('s-prox').textContent = eventosCache.filter(function(e){return e.data >= hoje && e.status !== 'cancelado';}).length;
       document.getElementById('s-ativ').textContent = eventosCache.filter(function(e){return e.status === 'ativo';}).length;
       document.getElementById('s-rasc').textContent = eventosCache.filter(function(e){return e.status === 'rascunho';}).length;
     }
 
     function renderizar() {
-      var hoje = new Date().toISOString().split('T')[0];
+      var hoje = hojeISO();
       var filtrados = eventosCache;
       if (filtroAtivo === 'proximos') {
         filtrados = filtrados.filter(function(e){return e.data >= hoje && e.status !== 'cancelado';});
