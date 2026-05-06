@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhes do Evento · ReserveX · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=2">
+  <script>
+    window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
+    window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
+  </script>
+  <style>
+    .banner-evento { width: 100%; height: 160px; border-radius: var(--radius-lg); background: linear-gradient(135deg, rgba(200,16,46,0.2), rgba(201,151,60,0.2)); background-size: cover; background-position: center; margin-bottom: var(--space-md); }
+    .info-box { background: var(--bg-secondary); border: 1px solid var(--border-default); border-top: 3px solid var(--color-red); border-radius: var(--radius-md); padding: var(--space-lg); margin-bottom: var(--space-lg); }
+    .info-titulo { font-family: var(--font-display); color: var(--color-cream); font-size: 1.5rem; margin-bottom: 8px; }
+    .info-meta { display: flex; gap: var(--space-md); font-size: 0.875rem; color: var(--text-muted); flex-wrap: wrap; margin-bottom: var(--space-sm); }
+    .info-desc { color: var(--text-secondary); font-size: 0.875rem; line-height: 1.5; margin-top: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--border-default); }
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); margin-bottom: var(--space-lg); }
+    @media (min-width: 600px) { .stats-row { grid-template-columns: repeat(4, 1fr); } }
+    .stat-card-e { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); text-align: center; }
+    .stat-card-e.gold { border-top: 3px solid var(--color-gold); }
+    .stat-card-e.green { border-top: 3px solid var(--color-success); }
+    .stat-card-e.blue { border-top: 3px solid var(--color-info); }
+    .stat-v { font-family: var(--font-display); font-size: 1.75rem; line-height: 1; color: var(--color-cream); }
+    .stat-l { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); }
+    .reserva-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-sm); }
+    .reserva-card.confirmada { border-left: 3px solid var(--color-success); }
+    .reserva-card.em_uso { border-left: 3px solid var(--color-info); }
+    .reserva-card.pendente { border-left: 3px solid var(--color-warning); }
+    .reserva-card.cancelada, .reserva-card.no_show { border-left: 3px solid var(--color-error); opacity: 0.6; }
+    .reserva-row { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-md); }
+    .reserva-info { flex: 1; min-width: 0; }
+    .reserva-nome { font-weight: 600; color: var(--color-cream); font-size: 1rem; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .reserva-meta { display: flex; gap: var(--space-md); font-size: 0.8125rem; color: var(--text-muted); flex-wrap: wrap; }
+    .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+    .modal-backdrop.active { display: flex; }
+    .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-default); }
+    .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
+    .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
+    .empty { text-align: center; padding: var(--space-2xl) var(--space-md); color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.4; }
+    .vincular-card { background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-sm); cursor: pointer; }
+    .vincular-card:active { border-color: var(--color-gold); transform: scale(0.99); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="home.html" class="brand">
+        <div class="brand-logo">JIMMY<strong>'S</strong></div>
+        <span class="brand-badge">v1.0</span>
+      </a>
+      <div class="user-menu">
+        <a href="eventos.html" class="btn btn-ghost btn-sm">← Eventos</a>
+      </div>
+    </div>
+  </header>
+  <main class="container fade-in">
+    <div id="conteudo">
+      <div class="empty"><div class="spinner" style="margin: 0 auto;"></div></div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="modal-vincular">
+    <div class="modal-box">
+      <div class="modal-header"><div class="modal-title">+ Vincular Reserva</div><button type="button" class="close-btn" id="btn-fechar-v">✕</button></div>
+      <div id="vincular-body"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=2"></script>
+  <script>
+(function(){
+  try {
+    var admin = exigirLogin();
+    if (!admin) return;
+
+    var eventoId = new URLSearchParams(window.location.search).get('id');
+    if (!eventoId) {
+      document.getElementById('conteudo').innerHTML = '<div class="alert alert-error">ID do evento não fornecido.</div>';
+      return;
+    }
+
+    var evento = null;
+    var reservasVinculadas = [];
+    var reservasDisponiveis = [];
+
+    var modalVincular = document.getElementById('modal-vincular');
+
+    function escapeHtml(s){ if(s==null)return ''; return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
+    async function carregar() {
+      try {
+        var e = await sb.from('eventos').select('*').eq('id', eventoId).eq('tenant_id', TENANT_ID).maybeSingle();
+        if (e.error) throw new Error(e.error.message);
+        if (!e.data) { document.getElementById('conteudo').innerHTML = '<div class="alert alert-error">Evento não encontrado.</div>'; return; }
+        evento = e.data;
+
+        var r = await sb.from('reservas')
+          .select('*, clientes(nome_completo, telefone, instagram, cpf), mesas(nome)')
+          .eq('tenant_id', TENANT_ID)
+          .eq('evento_id', eventoId)
+          .order('created_at', { ascending: false });
+        if (r.error) throw new Error(r.error.message);
+        reservasVinculadas = r.data || [];
+
+        var d = await sb.from('reservas')
+          .select('*, clientes(nome_completo, telefone)')
+          .eq('tenant_id', TENANT_ID)
+          .eq('data', evento.data)
+          .is('evento_id', null)
+          .in('status', ['pendente','confirmada','em_uso'])
+          .order('created_at', { ascending: false });
+        reservasDisponiveis = d.data || [];
+
+        renderizar();
+      } catch(err) { document.getElementById('conteudo').innerHTML = '<div class="alert alert-error">' + err.message + '</div>'; }
+    }
+
+    function renderizar() {
+      var ativas = reservasVinculadas.filter(function(r){return ['pendente','confirmada','em_uso'].indexOf(r.status) >= 0;});
+      var totalPessoas = ativas.reduce(function(a,b){return a + (b.qtd_pessoas||0);}, 0);
+      var capacidade = evento.capacidade_max || null;
+      var percVendido = capacidade ? Math.round((totalPessoas / capacidade) * 100) : null;
+      var valorPrevisto = (evento.valor_couvert || 0) * totalPessoas;
+
+      var bannerHtml = evento.banner_url
+        ? '<div class="banner-evento" style="background-image:url(' + escapeHtml(evento.banner_url) + ')"></div>'
+        : '';
+
+      var horaStr = '';
+      if (evento.hora_inicio) {
+        horaStr = '🕐 ' + evento.hora_inicio.substring(0,5);
+        if (evento.hora_fim) horaStr += '–' + evento.hora_fim.substring(0,5);
+      }
+
+      var statusBadge = evento.status === 'ativo' ? 'green' : evento.status === 'rascunho' ? 'gold' : evento.status === 'cancelado' ? 'red' : 'gray';
+
+      var infoHtml = '<div class="info-box">' +
+        '<div class="info-titulo">' + escapeHtml(evento.nome) + ' <span class="badge badge-' + statusBadge + '" style="font-size:0.6875rem;vertical-align:middle;margin-left:8px;">' + evento.status + '</span></div>' +
+        '<div class="info-meta">' +
+          '<span>📅 ' + fmtData(evento.data) + '</span>' +
+          (horaStr ? '<span>' + horaStr + '</span>' : '') +
+          (evento.valor_couvert > 0 ? '<span>🎫 R$ ' + parseFloat(evento.valor_couvert).toFixed(2).replace('.',',') + '</span>' : '') +
+          (capacidade ? '<span>👥 até ' + capacidade + '</span>' : '') +
+        '</div>' +
+        (evento.descricao ? '<div class="info-desc">' + escapeHtml(evento.descricao) + '</div>' : '') +
+      '</div>';
+
+      var statsHtml = '<div class="stats-row">' +
+        '<div class="stat-card-e green"><div class="stat-v">' + ativas.length + '</div><div class="stat-l">Reservas</div></div>' +
+        '<div class="stat-card-e blue"><div class="stat-v">' + totalPessoas + '</div><div class="stat-l">Pessoas</div></div>' +
+        (capacidade ? '<div class="stat-card-e gold"><div class="stat-v">' + percVendido + '%</div><div class="stat-l">Vendido</div></div>' : '<div class="stat-card-e"><div class="stat-v">—</div><div class="stat-l">Sem limite</div></div>') +
+        '<div class="stat-card-e"><div class="stat-v">R$' + valorPrevisto.toFixed(0) + '</div><div class="stat-l">Couvert estim.</div></div>' +
+      '</div>';
+
+      var toolbarHtml = '<div class="toolbar">' +
+        '<button type="button" class="btn btn-primary" id="btn-vincular">+ Vincular Reserva</button>' +
+        '<button type="button" class="btn btn-secondary" id="btn-csv">📥 CSV</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻</button>' +
+      '</div>';
+
+      var listaHtml = '<h3 style="font-family:var(--font-display);color:var(--color-gold);letter-spacing:0.05em;margin-bottom:var(--space-md);text-transform:uppercase;font-size:1rem;">Pessoas Confirmadas</h3>';
+      if (reservasVinculadas.length === 0) {
+        listaHtml += '<div class="empty"><div class="empty-icon">📋</div><p>Ninguém confirmado ainda.</p><p style="font-size:0.875rem;margin-top:8px;">Use "+ Vincular Reserva" pra adicionar reservas que já existem dessa data.</p></div>';
+      } else {
+        reservasVinculadas.forEach(function(r){
+          var nome = r.clientes ? r.clientes.nome_completo : '(sem cliente)';
+          var tel = r.clientes ? fmtTelefone(r.clientes.telefone) : '';
+          var statusLabel = r.status === 'em_uso' ? 'em uso' : r.status === 'no_show' ? 'no-show' : r.status;
+          listaHtml += '<div class="reserva-card ' + r.status + '">' +
+            '<div class="reserva-row">' +
+              '<div class="reserva-info">' +
+                '<div class="reserva-nome">' + escapeHtml(nome) + '</div>' +
+                '<div class="reserva-meta">' +
+                  '<span>👥 ' + r.qtd_pessoas + '</span>' +
+                  (tel ? '<span>📞 ' + tel + '</span>' : '') +
+                  (r.mesas ? '<span>🪑 ' + escapeHtml(r.mesas.nome) + '</span>' : '') +
+                '</div>' +
+              '</div>' +
+              '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' +
+                '<span class="badge badge-' + (r.status === 'pendente' ? 'gold' : r.status === 'confirmada' ? 'green' : r.status === 'em_uso' ? 'blue' : 'gray') + '">' + statusLabel + '</span>' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-id="' + r.id + '">Desvincular</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        });
+      }
+
+      document.getElementById('conteudo').innerHTML = bannerHtml + infoHtml + statsHtml + toolbarHtml + listaHtml;
+
+      document.getElementById('btn-vincular').addEventListener('click', abrirVincular);
+      document.getElementById('btn-csv').addEventListener('click', exportarCSV);
+      document.getElementById('btn-refresh').addEventListener('click', carregar);
+      Array.prototype.forEach.call(document.querySelectorAll('button[data-id]'), function(b){
+        b.addEventListener('click', function(){ desvincular(b.dataset.id); });
+      });
+    }
+
+    function abrirVincular() {
+      if (reservasDisponiveis.length === 0) {
+        document.getElementById('vincular-body').innerHTML =
+          '<div class="empty"><div class="empty-icon">📋</div><p>Nenhuma reserva disponível.</p>' +
+          '<p style="font-size:0.875rem;margin-top:8px;">Não há reservas dessa data sem evento. Crie uma reserva manual primeiro em "Reservas".</p></div>';
+      } else {
+        var html = '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Reservas de <strong>' + fmtData(evento.data) + '</strong> sem evento. Toque pra vincular:</p>';
+        reservasDisponiveis.forEach(function(r){
+          var nome = r.clientes ? r.clientes.nome_completo : '(sem cliente)';
+          var tel = r.clientes ? fmtTelefone(r.clientes.telefone) : '';
+          html += '<div class="vincular-card" data-id="' + r.id + '">' +
+            '<strong style="color:var(--color-cream);">' + escapeHtml(nome) + '</strong>' +
+            '<div style="font-size:0.8125rem;color:var(--text-muted);margin-top:4px;">👥 ' + r.qtd_pessoas + (tel ? ' · 📞 ' + tel : '') + ' · ' + r.status + '</div>' +
+          '</div>';
+        });
+        document.getElementById('vincular-body').innerHTML = html;
+        Array.prototype.forEach.call(document.querySelectorAll('#vincular-body .vincular-card'), function(c){
+          c.addEventListener('click', function(){ vincularReserva(c.dataset.id); });
+        });
+      }
+      modalVincular.classList.add('active');
+    }
+
+    async function vincularReserva(reservaId) {
+      try {
+        var resp = await sb.from('reservas').update({ evento_id: eventoId }).eq('id', reservaId);
+        if (resp.error) throw new Error(resp.error.message);
+        toast('Reserva vinculada ✓', 'success');
+        modalVincular.classList.remove('active');
+        carregar();
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
+    async function desvincular(reservaId) {
+      if (!confirm('Desvincular essa reserva do evento?')) return;
+      try {
+        var resp = await sb.from('reservas').update({ evento_id: null }).eq('id', reservaId);
+        if (resp.error) throw new Error(resp.error.message);
+        toast('Reserva desvinculada', 'success');
+        carregar();
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
+    function exportarCSV() {
+      var headers = ['Nome','Telefone','Instagram','CPF','Pessoas','Mesa','Status'];
+      var linhas = reservasVinculadas.map(function(r){
+        var c = r.clientes || {};
+        return [c.nome_completo || '', fmtTelefone(c.telefone || ''), c.instagram || '', c.cpf || '', r.qtd_pessoas, r.mesas ? r.mesas.nome : '', r.status];
+      });
+      var csv = [headers].concat(linhas).map(function(l){ return l.map(function(v){ return '"' + String(v).replace(/"/g,'""') + '"'; }).join(','); }).join('\n');
+      var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'evento-' + evento.nome.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-' + evento.data + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('CSV exportado ✓', 'success');
+    }
+
+    document.getElementById('btn-fechar-v').addEventListener('click', function(){ modalVincular.classList.remove('active'); });
+    modalVincular.addEventListener('click', function(e){ if (e.target === modalVincular) modalVincular.classList.remove('active'); });
+
+    carregar();
+  } catch(err) { alert('Erro fatal: ' + err.message); }
+})();
+  </script>
+</body>
+</html>
