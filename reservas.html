@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reservas · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=2">
+  <link rel="stylesheet" href="assets/styles.css?v=3">
   <script>
     window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
     window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
@@ -17,7 +17,7 @@
     .chip.active { background: var(--color-red); color: #fff; border-color: var(--color-red); }
     .reserva-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-sm); cursor: pointer; }
     .reserva-card.pendente { border-left: 3px solid var(--color-warning); }
-    .reserva-card.confirmada { border-left: 3px solid var(--color-success); }
+    .reserva-card.confirmada { border-left: 3px solid var(--color-green); }
     .reserva-card.em_uso { border-left: 3px solid var(--color-info); }
     .reserva-card.cancelada, .reserva-card.no_show { border-left: 3px solid var(--color-error); opacity: 0.6; }
     .reserva-card.finalizada { border-left: 3px solid #404040; opacity: 0.7; }
@@ -39,18 +39,18 @@
     .stat-pill { flex: 1; min-width: 80px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 10px; text-align: center; }
     .stat-pill-v { font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: var(--color-cream); }
     .stat-pill-l { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
-    .cliente-encontrado { background: rgba(45, 106, 79, 0.15); border: 1px solid var(--color-success); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+    .cliente-encontrado { background: rgba(42, 171, 71, 0.15); border: 1px solid var(--color-green); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
     .cliente-novo-aviso { background: rgba(201, 151, 60, 0.1); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
     .step-title { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.05em; color: var(--color-gold); margin-bottom: var(--space-md); padding-bottom: 8px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
     .mesa-pick-info { background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); display: flex; justify-content: space-between; align-items: center; }
-    .mesa-pick-info.tem { border-color: var(--color-success); background: rgba(45, 106, 79, 0.1); }
+    .mesa-pick-info.tem { border-color: var(--color-green); background: rgba(42, 171, 71, 0.1); }
     .setor-grupo { margin-bottom: var(--space-md); }
     .setor-titulo { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
     .setor-pill { width: 10px; height: 10px; border-radius: 50%; }
     .mesa-grid-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
     .mesa-opt { padding: 10px 4px; background: var(--bg-tertiary); border: 2px solid var(--border-default); border-radius: var(--radius-md); cursor: pointer; text-align: center; }
     .mesa-opt:active { transform: scale(0.97); }
-    .mesa-opt.ideal { border-color: var(--color-success); background: rgba(45, 106, 79, 0.08); }
+    .mesa-opt.ideal { border-color: var(--color-green); background: rgba(42, 171, 71, 0.08); }
     .mesa-opt.apertado { border-color: var(--color-warning); background: rgba(201, 151, 60, 0.06); }
     .mesa-opt.sel { border-color: var(--color-gold) !important; background: rgba(201, 151, 60, 0.25) !important; }
     .mesa-opt-nome { font-family: var(--font-display); font-size: 1.25rem; color: var(--color-cream); line-height: 1; }
@@ -67,7 +67,7 @@
     <div class="topbar-inner">
       <a href="home.html" class="brand">
         <div class="brand-logo">JIMMY<strong>'S</strong></div>
-        <span class="brand-badge">v1.0</span>
+        <span class="brand-badge">v1.1</span>
       </a>
       <div class="user-menu">
         <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
@@ -146,18 +146,12 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=2"></script>
+  <script src="assets/supabase.js?v=3"></script>
   <script>
 (function(){
   try {
     var admin = exigirLogin();
     if (!admin) return;
-
-    // FIX timezone: hoje no horário LOCAL (não UTC)
-    function hojeISO() {
-      var d = new Date();
-      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    }
 
     var reservasCache = [];
     var mesasCache = [];
@@ -232,7 +226,7 @@
 
       var html = '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Mesas pra <strong>' + fmtData(dataAlvo) + '</strong> · <strong>' + mesaPickerQtd + ' pessoa(s)</strong></p>' +
         '<div class="legenda-cores">' +
-          '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-success)"></span>Cabe folgado (≥' + mesaPickerQtd + ')</div>' +
+          '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-green)"></span>Cabe folgado (≥' + mesaPickerQtd + ')</div>' +
           '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-warning)"></span>Apertado (puxar cadeira)</div>' +
         '</div>';
 
@@ -368,11 +362,12 @@
       navigator.clipboard.writeText(url);
       var orig = btn.textContent;
       btn.textContent = '✓ Copiado!';
-      setTimeout(function(){ btn.textContent = orig; }, 1500);
+      btn.classList.add('btn-success');
+      setTimeout(function(){ btn.textContent = orig; btn.classList.remove('btn-success'); }, 1500);
     }
     function abrirWhatsappLink() {
       var url = document.getElementById('link-url').textContent;
-      var msg = encodeURIComponent('Olá! 🇺🇸🔥\n\nFaz sua reserva no Jimmy\'s pelo link abaixo:\n\n' + url + '\n\n📞 43 98412-9883');
+      var msg = encodeURIComponent('JIMMY\'S Bar 🇺🇸🔥\n\nOlá! Aqui é o Jimmy\'s Bar.\n\nSua reserva está sendo preparada. Acesse o link e complete seu cadastro:\n\n' + url + '\n\n📞 Reservas: 43 98412-9883\n📍 @jimmys.londrina\n\nJimmy\'s Bar · Londrina PR');
       window.open('https://wa.me/?text=' + msg, '_blank');
     }
     function novoLink() {
@@ -449,8 +444,7 @@
 
       var btnRec = document.getElementById('btn-rec-copiar');
       if (btnRec) btnRec.addEventListener('click', function(){
-        navigator.clipboard.writeText(window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'cadastro.html?token=' + r.token);
-        btnRec.textContent = '✓ Copiado';
+        copiarTexto(window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'cadastro.html?token=' + r.token, btnRec);
       });
 
       var btnTM = document.getElementById('btn-trocar-mesa');
@@ -646,7 +640,6 @@
       if (rEv) rEv.addEventListener('change', function(){ eventoSelecionadoForm = rEv.value || null; });
       var rData = document.getElementById('r-data');
       if (rData) rData.addEventListener('change', function(){
-        // FIX: salva nova data antes de re-renderizar
         dataReservaForm = rData.value;
         eventoSelecionadoForm = null;
         var evs = eventosNaData(rData.value);
