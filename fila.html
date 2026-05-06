@@ -3,32 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard · ReserveX · Jimmy's</title>
+  <title>Fila · ReserveX · Jimmy's</title>
   <link rel="stylesheet" href="assets/styles.css?v=2">
   <script>
     window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
+    window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
   </script>
   <style>
-    .saudacao { font-family: var(--font-display); font-size: 1.75rem; color: var(--color-cream); margin-bottom: 4px; }
-    .saudacao .red { color: var(--color-red-bright); font-style: italic; }
-    .data-hoje { font-size: 0.875rem; color: var(--text-muted); margin-bottom: var(--space-xl); text-transform: capitalize; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); margin-bottom: var(--space-xl); }
-    @media (min-width: 600px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } }
-    .kpi { background: var(--bg-secondary); border: 1px solid var(--border-default); border-top: 3px solid var(--color-red); border-radius: var(--radius-md); padding: var(--space-md); text-align: center; }
-    .kpi-v { font-family: var(--font-display); font-size: 2rem; line-height: 1; color: var(--color-cream); }
-    .kpi-l { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 6px; }
-    .kpi.gold { border-top-color: var(--color-gold); }
-    .kpi.green { border-top-color: var(--color-success); }
-    .kpi.blue { border-top-color: var(--color-info); }
-    .secao-titulo { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.08em; color: var(--color-gold); margin: var(--space-xl) 0 var(--space-md); padding-bottom: 8px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
-    .atalhos { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); }
-    @media (min-width: 600px) { .atalhos { grid-template-columns: repeat(3, 1fr); } }
-    .atalho { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-lg) var(--space-md); text-align: center; text-decoration: none; color: var(--color-cream); display: flex; flex-direction: column; align-items: center; gap: 8px; transition: all 0.15s; min-height: 110px; justify-content: center; }
-    .atalho:active { transform: scale(0.97); border-color: var(--color-red); }
-    .atalho-icon { font-size: 2rem; line-height: 1; }
-    .atalho-nome { font-family: var(--font-display); font-size: 0.9375rem; letter-spacing: 0.05em; }
-    .atalho-desc { font-family: var(--font-body); font-size: 0.6875rem; color: var(--text-muted); letter-spacing: 0; text-transform: none; line-height: 1.3; }
-    .atalho.destaque { border-color: var(--color-gold); background: linear-gradient(135deg, var(--bg-secondary), rgba(201, 151, 60, 0.08)); }
+    .stats-row { display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); flex-wrap: wrap; }
+    .stat-pill { flex: 1; min-width: 90px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 10px; text-align: center; }
+    .stat-pill-v { font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: var(--color-cream); }
+    .stat-pill-l { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); align-items: center; }
+    .fila-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-left: 4px solid var(--color-success); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-sm); display: flex; gap: var(--space-md); align-items: center; }
+    .fila-card.amarelo { border-left-color: var(--color-warning); }
+    .fila-card.vermelho { border-left-color: var(--color-error); }
+    .fila-num { font-family: var(--font-display); font-size: 2rem; line-height: 1; color: var(--color-gold); width: 40px; text-align: center; }
+    .fila-info { flex: 1; min-width: 0; }
+    .fila-nome { font-weight: 600; color: var(--color-cream); font-size: 1rem; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fila-meta { display: flex; gap: var(--space-md); font-size: 0.8125rem; color: var(--text-muted); flex-wrap: wrap; }
+    .fila-tempo { font-family: var(--font-display); font-size: 1.25rem; color: var(--color-cream); }
+    .fila-tempo.amarelo { color: var(--color-warning); }
+    .fila-tempo.vermelho { color: var(--color-error); }
+    .fila-acoes { display: flex; flex-direction: column; gap: 4px; }
+    .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+    .modal-backdrop.active { display: flex; }
+    .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-default); }
+    .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
+    .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
+    .empty { text-align: center; padding: var(--space-2xl) var(--space-md); color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.4; }
+    .step-title { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.05em; color: var(--color-gold); margin-bottom: var(--space-md); padding-bottom: 8px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
+    .cliente-encontrado { background: rgba(45, 106, 79, 0.15); border: 1px solid var(--color-success); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+    .cliente-novo-aviso { background: rgba(201, 151, 60, 0.1); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); }
+    .setor-grupo { margin-bottom: var(--space-md); }
+    .setor-titulo { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-gold); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .setor-pill { width: 10px; height: 10px; border-radius: 50%; }
+    .mesa-grid-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
+    .mesa-opt { padding: 10px 4px; background: var(--bg-tertiary); border: 2px solid var(--border-default); border-radius: var(--radius-md); cursor: pointer; text-align: center; }
+    .mesa-opt:active { transform: scale(0.97); }
+    .mesa-opt.ideal { border-color: var(--color-success); background: rgba(45, 106, 79, 0.08); }
+    .mesa-opt.apertado { border-color: var(--color-warning); background: rgba(201, 151, 60, 0.06); }
+    .mesa-opt.sel { border-color: var(--color-gold) !important; background: rgba(201, 151, 60, 0.25) !important; }
+    .mesa-opt-nome { font-family: var(--font-display); font-size: 1.25rem; color: var(--color-cream); line-height: 1; }
+    .mesa-opt-cap { font-size: 0.625rem; color: var(--text-muted); margin-top: 4px; }
+    .mesa-opt.apertado .mesa-opt-cap { color: var(--color-warning); }
+    .legenda-cores { display: flex; gap: var(--space-md); font-size: 0.75rem; color: var(--text-muted); margin-bottom: var(--space-md); flex-wrap: wrap; }
+    .legenda-item { display: flex; align-items: center; gap: 6px; }
+    .legenda-dot { width: 12px; height: 12px; border-radius: 3px; border: 2px solid; }
   </style>
 </head>
 <body>
@@ -39,76 +62,41 @@
         <span class="brand-badge">v1.0</span>
       </a>
       <div class="user-menu">
-        <span id="user-nome" style="font-size:0.8125rem;color:var(--text-secondary);"></span>
-        <button type="button" class="btn btn-ghost btn-sm" id="btn-logout">Sair</button>
+        <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
       </div>
     </div>
   </header>
-
   <main class="container fade-in">
-    <h1 class="saudacao" id="saudacao">Bem-vindo<span class="red">.</span></h1>
-    <p class="data-hoje" id="data-hoje"></p>
+    <h1 style="font-family: var(--font-display); margin-bottom: var(--space-sm);">🕐 Fila de Espera</h1>
+    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Quem chegou e tá aguardando mesa.</p>
 
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-v" id="kpi-reservas">—</div><div class="kpi-l">Reservas hoje</div></div>
-      <div class="kpi blue"><div class="kpi-v" id="kpi-uso">—</div><div class="kpi-l">Em uso agora</div></div>
-      <div class="kpi gold"><div class="kpi-v" id="kpi-fila">—</div><div class="kpi-l">Na fila</div></div>
-      <div class="kpi green"><div class="kpi-v" id="kpi-clientes">—</div><div class="kpi-l">Clientes total</div></div>
+    <div class="stats-row">
+      <div class="stat-pill"><div class="stat-pill-v" id="s-fila">—</div><div class="stat-pill-l">Aguardando</div></div>
+      <div class="stat-pill"><div class="stat-pill-v" id="s-pessoas">—</div><div class="stat-pill-l">Pessoas total</div></div>
+      <div class="stat-pill"><div class="stat-pill-v" id="s-tempo">—</div><div class="stat-pill-l">Espera média</div></div>
     </div>
 
-    <div class="secao-titulo">⚡ Operação</div>
-    <div class="atalhos">
-      <a href="reservas.html" class="atalho destaque">
-        <div class="atalho-icon">📋</div>
-        <div class="atalho-nome">RESERVAS</div>
-        <div class="atalho-desc">Gerar links · walk-in</div>
-      </a>
-      <a href="fila.html" class="atalho destaque">
-        <div class="atalho-icon">🕐</div>
-        <div class="atalho-nome">FILA</div>
-        <div class="atalho-desc">Espera por mesa</div>
-      </a>
-      <a href="mapa.html" class="atalho destaque">
-        <div class="atalho-icon">🗺️</div>
-        <div class="atalho-nome">MAPA</div>
-        <div class="atalho-desc">Mesas em tempo real</div>
-      </a>
-      <a href="clientes.html" class="atalho">
-        <div class="atalho-icon">👥</div>
-        <div class="atalho-nome">CLIENTES</div>
-        <div class="atalho-desc">CRM · histórico</div>
-      </a>
-      <a href="calendario.html" class="atalho">
-        <div class="atalho-icon">📅</div>
-        <div class="atalho-nome">CALENDÁRIO</div>
-        <div class="atalho-desc">Configura dias</div>
-      </a>
-      <a href="#" class="atalho" style="opacity:0.5;pointer-events:none;">
-        <div class="atalho-icon">🎤</div>
-        <div class="atalho-nome">EVENTOS</div>
-        <div class="atalho-desc">Em breve</div>
-      </a>
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" id="btn-novo">+ Adicionar à Fila</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻</button>
     </div>
 
-    <div class="secao-titulo" id="secao-config" style="display:none;">⚙️ Configuração (master)</div>
-    <div class="atalhos" id="atalhos-config" style="display:none;">
-      <a href="config.html" class="atalho">
-        <div class="atalho-icon">🪑</div>
-        <div class="atalho-nome">SETORES E MESAS</div>
-        <div class="atalho-desc">Cadastra estrutura</div>
-      </a>
-      <a href="#" class="atalho" style="opacity:0.5;pointer-events:none;">
-        <div class="atalho-icon">💬</div>
-        <div class="atalho-nome">MENSAGENS</div>
-        <div class="atalho-desc">Em breve</div>
-      </a>
-      <a href="#" class="atalho" style="opacity:0.5;pointer-events:none;">
-        <div class="atalho-icon">👤</div>
-        <div class="atalho-nome">USUÁRIOS</div>
-        <div class="atalho-desc">Em breve</div>
-      </a>
-    </div>
+    <div id="lista-fila"></div>
   </main>
+
+  <div class="modal-backdrop" id="modal-novo">
+    <div class="modal-box">
+      <div class="modal-header"><div class="modal-title">+ Adicionar à Fila</div><button type="button" class="close-btn" id="btn-fechar-novo">✕</button></div>
+      <div id="novo-body"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-mesa">
+    <div class="modal-box">
+      <div class="modal-header"><div class="modal-title">🪑 Alocar Mesa</div><button type="button" class="close-btn" id="btn-fechar-mesa">✕</button></div>
+      <div id="mesa-body"></div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/supabase.js?v=2"></script>
@@ -118,48 +106,318 @@
     var admin = exigirLogin();
     if (!admin) return;
 
-    var primNome = (admin.nome || 'Você').split(' ')[0];
-    document.getElementById('user-nome').textContent = primNome + ' · ' + admin.nivel;
-    document.getElementById('saudacao').innerHTML = 'Olá, ' + primNome + '<span class="red">.</span>';
+    var filaCache = [];
+    var mesasCache = [];
+    var setoresCache = [];
+    var reservasHoje = [];
+    var clienteEncontrado = null;
+    var filaSelecionada = null;
+    var mesaPickerSelecionada = null;
+    var atualizadorTempo;
 
-    var hoje = new Date();
-    var diasSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-    var meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-    document.getElementById('data-hoje').textContent = diasSemana[hoje.getDay()] + ', ' + hoje.getDate() + ' de ' + meses[hoje.getMonth()] + ' de ' + hoje.getFullYear();
+    var modalNovo = document.getElementById('modal-novo');
+    var modalMesa = document.getElementById('modal-mesa');
 
-    if (admin.nivel === 'master') {
-      document.getElementById('secao-config').style.display = '';
-      document.getElementById('atalhos-config').style.display = 'grid';
-    }
+    function escapeHtml(s){ if(s==null)return ''; return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+    function fmtCpf(c){ if(!c)return''; var d=c.replace(/\D/g,''); if(d.length!==11)return c; return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9); }
+    function aplicarMascaraCPF(i){i.addEventListener('input',function(){var v=i.value.replace(/\D/g,'').slice(0,11);if(v.length>9)v=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6,9)+'-'+v.slice(9);else if(v.length>6)v=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6);else if(v.length>3)v=v.slice(0,3)+'.'+v.slice(3);i.value=v;});}
+    function aplicarMascaraTel(i){i.addEventListener('input',function(){var v=i.value.replace(/\D/g,'').slice(0,11);if(v.length>6)v='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);else if(v.length>2)v='('+v.slice(0,2)+') '+v.slice(2);else if(v.length>0)v='('+v;i.value=v;});}
 
-    document.getElementById('btn-logout').addEventListener('click', function(){
-      if (confirm('Sair do sistema?')) logout();
-    });
+    function minutosDesde(iso){ return Math.floor((Date.now() - new Date(iso).getTime()) / 60000); }
+    function corPorTempo(min){ if (min < 10) return ''; if (min < 30) return 'amarelo'; return 'vermelho'; }
+    function fmtMin(m){ if (m < 60) return m + 'min'; var h = Math.floor(m/60); var mr = m%60; return h+'h'+(mr>0?(' '+mr+'m'):''); }
 
-    async function carregarKPIs() {
+    async function carregar() {
       try {
-        var hojeStr = new Date().toISOString().split('T')[0];
+        var s = await sb.from('setores').select('*').eq('tenant_id', TENANT_ID).eq('ativo', true).order('ordem');
+        if (s.error) throw new Error(s.error.message);
+        setoresCache = s.data || [];
 
-        var r = await sb.from('reservas').select('id, status', { count: 'exact', head: false })
-          .eq('tenant_id', TENANT_ID).eq('data', hojeStr);
-        if (!r.error) {
-          var ativas = (r.data || []).filter(function(x){ return ['pendente','confirmada','em_uso'].indexOf(x.status) >= 0; });
-          var emUso = (r.data || []).filter(function(x){ return x.status === 'em_uso'; });
-          document.getElementById('kpi-reservas').textContent = ativas.length;
-          document.getElementById('kpi-uso').textContent = emUso.length;
-        }
+        var m = await sb.from('mesas').select('*').eq('tenant_id', TENANT_ID).eq('ativa', true).order('nome');
+        if (m.error) throw new Error(m.error.message);
+        mesasCache = m.data || [];
 
-        var f = await sb.from('fila_espera').select('id', { count: 'exact', head: true })
-          .eq('tenant_id', TENANT_ID).eq('status', 'aguardando');
-        document.getElementById('kpi-fila').textContent = f.count || 0;
+        var hoje = new Date().toISOString().split('T')[0];
+        var r = await sb.from('reservas').select('mesa_id, status').eq('tenant_id', TENANT_ID).eq('data', hoje).in('status', ['pendente','confirmada','em_uso']);
+        reservasHoje = r.data || [];
 
-        var c = await sb.from('clientes').select('id', { count: 'exact', head: true })
-          .eq('tenant_id', TENANT_ID).eq('ativo', true);
-        document.getElementById('kpi-clientes').textContent = c.count || 0;
-      } catch(err) { /* silencioso */ }
+        var f = await sb.from('fila_espera')
+          .select('*, clientes(nome_completo, telefone, instagram, cpf, classificacao, visitas_total)')
+          .eq('tenant_id', TENANT_ID)
+          .eq('status', 'aguardando')
+          .order('hora_chegada', { ascending: true });
+        if (f.error) throw new Error(f.error.message);
+        filaCache = f.data || [];
+
+        renderizar();
+      } catch(err) { alert('Erro: ' + err.message); }
     }
 
-    carregarKPIs();
+    function renderizar() {
+      var totalPessoas = filaCache.reduce(function(a,b){return a + (b.qtd_pessoas||0);}, 0);
+      var tempoMedio = filaCache.length ? Math.round(filaCache.reduce(function(a,b){return a + minutosDesde(b.hora_chegada);}, 0) / filaCache.length) : 0;
+      document.getElementById('s-fila').textContent = filaCache.length;
+      document.getElementById('s-pessoas').textContent = totalPessoas;
+      document.getElementById('s-tempo').textContent = filaCache.length ? fmtMin(tempoMedio) : '—';
+
+      var el = document.getElementById('lista-fila');
+      if (filaCache.length === 0) {
+        el.innerHTML = '<div class="empty"><div class="empty-icon">🕐</div><p>Fila vazia.</p><p style="font-size:0.875rem;margin-top:8px;">Quando bar lotar, aqui aparece quem tá aguardando.</p></div>';
+        return;
+      }
+
+      var html = '';
+      filaCache.forEach(function(f, idx){
+        var min = minutosDesde(f.hora_chegada);
+        var cor = corPorTempo(min);
+        var nome = f.clientes ? f.clientes.nome_completo : '(sem cliente)';
+        var tel = f.clientes ? fmtTelefone(f.clientes.telefone) : '';
+        html += '<div class="fila-card ' + cor + '" data-id="' + f.id + '">' +
+          '<div class="fila-num">' + (idx+1) + 'º</div>' +
+          '<div class="fila-info">' +
+            '<div class="fila-nome">' + escapeHtml(nome) + '</div>' +
+            '<div class="fila-meta">' +
+              '<span>👥 ' + f.qtd_pessoas + '</span>' +
+              (tel ? '<span>📞 ' + tel + '</span>' : '') +
+              '<span class="fila-tempo ' + cor + '">⏱ ' + fmtMin(min) + '</span>' +
+            '</div>' +
+            (f.observacoes ? '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">' + escapeHtml(f.observacoes) + '</div>' : '') +
+          '</div>' +
+          '<div class="fila-acoes">' +
+            '<button type="button" class="btn btn-primary btn-sm" data-acao="alocar" data-id="' + f.id + '">🪑 Alocar</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-acao="desistir" data-id="' + f.id + '">Desistiu</button>' +
+          '</div>' +
+        '</div>';
+      });
+      el.innerHTML = html;
+
+      Array.prototype.forEach.call(el.querySelectorAll('button[data-acao]'), function(b){
+        b.addEventListener('click', function(e){
+          e.stopPropagation();
+          var acao = b.dataset.acao;
+          var id = b.dataset.id;
+          if (acao === 'alocar') abrirAlocarMesa(id);
+          else if (acao === 'desistir') desistir(id);
+        });
+      });
+    }
+
+    function abrirNovo() {
+      clienteEncontrado = null;
+      renderizarNovo();
+      modalNovo.classList.add('active');
+    }
+
+    function renderizarNovo() {
+      document.getElementById('novo-body').innerHTML =
+        '<div class="step-title">1. Identificar cliente</div>' +
+        '<div class="form-group"><label class="form-label">Telefone</label><input type="tel" id="busca-tel" class="form-input" inputmode="numeric" placeholder="(43) 99999-9999"></div>' +
+        '<div class="form-group"><label class="form-label">OU CPF</label><input type="tel" id="busca-cpf" class="form-input" inputmode="numeric" placeholder="000.000.000-00"></div>' +
+        '<button type="button" class="btn btn-gold btn-block" id="btn-buscar">🔍 Buscar Cliente</button>' +
+        '<div id="resultado-busca" style="margin-top:var(--space-md);"></div>';
+      aplicarMascaraTel(document.getElementById('busca-tel'));
+      aplicarMascaraCPF(document.getElementById('busca-cpf'));
+      document.getElementById('btn-buscar').addEventListener('click', buscarCliente);
+    }
+
+    async function buscarCliente() {
+      var tel = document.getElementById('busca-tel').value.replace(/\D/g, '');
+      var cpf = document.getElementById('busca-cpf').value.replace(/\D/g, '');
+      var div = document.getElementById('resultado-busca');
+      if (!tel && !cpf) { toast('Digite telefone ou CPF', 'error'); return; }
+      if (tel && tel.length < 10) { toast('Telefone incompleto', 'error'); return; }
+      if (cpf && cpf.length !== 11) { toast('CPF inválido', 'error'); return; }
+      div.innerHTML = '<div class="spinner" style="margin: 0 auto;"></div>';
+      try {
+        var query = sb.from('clientes').select('*').eq('tenant_id', TENANT_ID).eq('ativo', true);
+        if (cpf) query = query.eq('cpf', cpf);
+        else query = query.eq('telefone', tel);
+        var resp = await query.maybeSingle();
+        if (resp.data) { clienteEncontrado = resp.data; mostrarEncontrado(); }
+        else mostrarNovo(tel, cpf);
+      } catch(err) { div.innerHTML = '<div class="alert alert-error">Erro: ' + err.message + '</div>'; }
+    }
+
+    function camposFila() {
+      return '<div class="step-title" style="margin-top:var(--space-lg);">' + (clienteEncontrado?'2':'3') + '. Dados</div>' +
+        '<div class="form-group"><label class="form-label">Pessoas *</label><input type="number" id="f-pessoas" class="form-input" inputmode="numeric" min="1" value="2"></div>' +
+        '<div class="form-group"><label class="form-label">Observações</label><textarea id="f-obs" class="form-textarea" placeholder="Aniversário, alergias..."></textarea></div>';
+    }
+
+    function mostrarEncontrado() {
+      var c = clienteEncontrado;
+      document.getElementById('resultado-busca').innerHTML =
+        '<div class="cliente-encontrado">' +
+          '<strong style="color:var(--color-cream);font-size:1.0625rem;">✓ ' + escapeHtml(c.nome_completo) + '</strong>' +
+          '<div style="font-size:0.8125rem;color:var(--text-secondary);margin-top:6px;">' +
+            (c.telefone ? '📞 ' + fmtTelefone(c.telefone) + '<br>' : '') +
+            (c.cpf ? '📄 ' + fmtCpf(c.cpf) + '<br>' : '') +
+            '👁 ' + (c.visitas_total||0) + ' visitas · ' + c.classificacao +
+          '</div>' +
+        '</div>' + camposFila() +
+        '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
+          '<button type="button" class="btn btn-primary" id="btn-add" style="flex:1;">🕐 Adicionar à Fila</button>' +
+          '<button type="button" class="btn btn-ghost" id="btn-trocar">Trocar</button>' +
+        '</div>';
+      document.getElementById('btn-trocar').addEventListener('click', function(){ clienteEncontrado=null; renderizarNovo(); });
+      document.getElementById('btn-add').addEventListener('click', function(){ adicionarFila(false); });
+    }
+
+    function mostrarNovo(tel, cpf) {
+      document.getElementById('resultado-busca').innerHTML =
+        '<div class="cliente-novo-aviso"><strong style="color:var(--color-gold);">⚠ Cliente não encontrado</strong>' +
+        '<div style="font-size:0.8125rem;color:var(--text-secondary);margin-top:4px;">Cadastre os dados + adicione à fila.</div></div>' +
+        '<div class="step-title">2. Cadastrar novo cliente</div>' +
+        '<div class="form-group"><label class="form-label">Nome completo *</label><input type="text" id="novo-nome" class="form-input"></div>' +
+        '<div class="form-group"><label class="form-label">Telefone *</label><input type="tel" id="novo-tel" class="form-input" inputmode="numeric" value="' + (tel?fmtTelefone(tel):'') + '" placeholder="(43) 99999-9999"></div>' +
+        '<div class="form-group"><label class="form-label">CPF</label><input type="tel" id="novo-cpf" class="form-input" inputmode="numeric" value="' + (cpf?fmtCpf(cpf):'') + '" placeholder="000.000.000-00"></div>' +
+        '<div class="form-group"><label class="form-label">Instagram</label><input type="text" id="novo-ig" class="form-input" placeholder="@usuario"></div>' +
+        camposFila() +
+        '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
+          '<button type="button" class="btn btn-primary" id="btn-add-tudo" style="flex:1;">🕐 Cadastrar + Fila</button>' +
+          '<button type="button" class="btn btn-ghost" id="btn-trocar">Voltar</button>' +
+        '</div>';
+      aplicarMascaraTel(document.getElementById('novo-tel'));
+      aplicarMascaraCPF(document.getElementById('novo-cpf'));
+      document.getElementById('btn-trocar').addEventListener('click', renderizarNovo);
+      document.getElementById('btn-add-tudo').addEventListener('click', function(){ adicionarFila(true); });
+    }
+
+    async function adicionarFila(cadastrarCliente) {
+      try {
+        var pessoas = parseInt(document.getElementById('f-pessoas').value, 10);
+        var obs = document.getElementById('f-obs').value.trim();
+        if (!pessoas || pessoas < 1) { toast('Pessoas inválido', 'error'); return; }
+        var clienteId;
+        if (cadastrarCliente) {
+          var nome = document.getElementById('novo-nome').value.trim();
+          var tel = document.getElementById('novo-tel').value.replace(/\D/g, '');
+          var cpf = document.getElementById('novo-cpf').value.replace(/\D/g, '');
+          var ig = document.getElementById('novo-ig').value.trim();
+          if (!nome || nome.length < 3) { toast('Nome obrigatório', 'error'); return; }
+          if (!tel || tel.length < 10) { toast('Telefone inválido', 'error'); return; }
+          if (cpf && cpf.length !== 11) { toast('CPF inválido', 'error'); return; }
+          var novo = await sb.from('clientes').insert({
+            tenant_id: TENANT_ID, nome_completo: nome, telefone: tel, cpf: cpf||null, instagram: ig||null, origem: 'walk_in'
+          }).select('id').maybeSingle();
+          if (novo.error) { if (novo.error.code === '23505') { toast('Tel ou CPF já cadastrado', 'error'); return; } throw new Error(novo.error.message); }
+          clienteId = novo.data.id;
+        } else { clienteId = clienteEncontrado.id; }
+
+        var resp = await sb.from('fila_espera').insert({
+          tenant_id: TENANT_ID, cliente_id: clienteId, qtd_pessoas: pessoas,
+          observacoes: obs||null, criado_por: admin.id
+        });
+        if (resp.error) throw new Error(resp.error.message);
+        toast('Adicionado à fila ✓', 'success');
+        modalNovo.classList.remove('active');
+        carregar();
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
+    function abrirAlocarMesa(filaId) {
+      filaSelecionada = filaCache.find(function(f){return f.id === filaId;});
+      if (!filaSelecionada) return;
+      mesaPickerSelecionada = null;
+      var qtd = filaSelecionada.qtd_pessoas;
+      var ocupadas = reservasHoje.filter(function(r){return r.mesa_id;}).map(function(r){return r.mesa_id;});
+
+      var html = '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Cliente: <strong style="color:var(--color-cream);">' + escapeHtml(filaSelecionada.clientes.nome_completo) + '</strong> · ' + qtd + ' pessoa(s)</p>' +
+        '<div class="legenda-cores">' +
+          '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-success)"></span>Cabe folgado (≥' + qtd + ')</div>' +
+          '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-warning)"></span>Apertado (puxar cadeira)</div>' +
+        '</div>';
+      var temAlguma = false;
+
+      setoresCache.forEach(function(s){
+        var mesasSetor = mesasCache.filter(function(m){
+          return m.setor_id === s.id && ocupadas.indexOf(m.id) < 0 && m.status !== 'bloqueada';
+        });
+        mesasSetor.sort(function(a,b){
+          var aIdeal = a.capacidade >= qtd ? 0 : 1;
+          var bIdeal = b.capacidade >= qtd ? 0 : 1;
+          if (aIdeal !== bIdeal) return aIdeal - bIdeal;
+          return (a.nome || '').localeCompare(b.nome || '');
+        });
+        if (mesasSetor.length === 0) return;
+        temAlguma = true;
+        html += '<div class="setor-grupo"><div class="setor-titulo"><span class="setor-pill" style="background:' + s.cor + '"></span>' + escapeHtml(s.nome) + '</div><div class="mesa-grid-pick">';
+        mesasSetor.forEach(function(m){
+          var classe = m.capacidade >= qtd ? 'ideal' : 'apertado';
+          html += '<div class="mesa-opt ' + classe + '" data-id="' + m.id + '"><div class="mesa-opt-nome">' + escapeHtml(m.nome) + '</div><div class="mesa-opt-cap">' + m.capacidade + 'p</div></div>';
+        });
+        html += '</div></div>';
+      });
+
+      if (!temAlguma) html += '<div class="alert alert-warning" style="font-size:0.875rem;">Nenhuma mesa livre no momento.</div>';
+
+      html += '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">' +
+        '<button type="button" class="btn btn-primary" id="btn-confirmar-mesa" style="flex:1;" disabled>✓ Alocar e Sentar</button>' +
+        '<button type="button" class="btn btn-ghost" id="btn-cancelar-mesa">Cancelar</button>' +
+      '</div>';
+
+      document.getElementById('mesa-body').innerHTML = html;
+      Array.prototype.forEach.call(document.querySelectorAll('.mesa-opt'), function(el){
+        el.addEventListener('click', function(){
+          Array.prototype.forEach.call(document.querySelectorAll('.mesa-opt'), function(x){ x.classList.remove('sel'); });
+          el.classList.add('sel');
+          mesaPickerSelecionada = el.dataset.id;
+          document.getElementById('btn-confirmar-mesa').disabled = false;
+        });
+      });
+      document.getElementById('btn-confirmar-mesa').addEventListener('click', confirmarAlocacao);
+      document.getElementById('btn-cancelar-mesa').addEventListener('click', function(){ modalMesa.classList.remove('active'); });
+      modalMesa.classList.add('active');
+    }
+
+    async function confirmarAlocacao() {
+      if (!mesaPickerSelecionada || !filaSelecionada) return;
+      try {
+        var hoje = new Date().toISOString().split('T')[0];
+        var resReserva = await sb.from('reservas').insert({
+          tenant_id: TENANT_ID,
+          cliente_id: filaSelecionada.cliente_id,
+          mesa_id: mesaPickerSelecionada,
+          data: hoje,
+          qtd_pessoas: filaSelecionada.qtd_pessoas,
+          status: 'em_uso',
+          origem: 'walk_in',
+          observacoes: filaSelecionada.observacoes,
+          criada_por: admin.id,
+          confirmada_por: admin.id
+        }).select('id').maybeSingle();
+        if (resReserva.error) throw new Error(resReserva.error.message);
+        var resFila = await sb.from('fila_espera').update({
+          status: 'alocado', mesa_id: mesaPickerSelecionada, reserva_id: resReserva.data.id,
+          alocado_em: new Date().toISOString(), alocado_por: admin.id
+        }).eq('id', filaSelecionada.id);
+        if (resFila.error) throw new Error(resFila.error.message);
+        toast('🇺🇸 Cliente sentou! Mesa alocada ✓', 'success');
+        modalMesa.classList.remove('active');
+        carregar();
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
+    async function desistir(id) {
+      var f = filaCache.find(function(x){return x.id === id;});
+      if (!f) return;
+      if (!confirm('Marcar ' + (f.clientes ? f.clientes.nome_completo : 'cliente') + ' como desistente?')) return;
+      var resp = await sb.from('fila_espera').update({ status: 'desistiu' }).eq('id', id);
+      if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+      toast('Removido da fila', 'success');
+      carregar();
+    }
+
+    document.getElementById('btn-novo').addEventListener('click', abrirNovo);
+    document.getElementById('btn-refresh').addEventListener('click', carregar);
+    document.getElementById('btn-fechar-novo').addEventListener('click', function(){ modalNovo.classList.remove('active'); });
+    document.getElementById('btn-fechar-mesa').addEventListener('click', function(){ modalMesa.classList.remove('active'); });
+    modalNovo.addEventListener('click', function(e){ if (e.target === modalNovo) modalNovo.classList.remove('active'); });
+    modalMesa.addEventListener('click', function(e){ if (e.target === modalMesa) modalMesa.classList.remove('active'); });
+
+    carregar();
+    atualizadorTempo = setInterval(function(){ if (filaCache.length) renderizar(); }, 30000);
+
   } catch(err) { alert('Erro fatal: ' + err.message); }
 })();
   </script>
