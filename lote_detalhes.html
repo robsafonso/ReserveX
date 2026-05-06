@@ -131,11 +131,14 @@
       return window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'cadastro.html?token=' + token;
     }
 
+    function urlBilhete(token) {
+      return window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'bilhete.html?token=' + token;
+    }
+
     function urlPainel() {
       return window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'painel_lote.html?id=' + loteId;
     }
 
-    // MENSAGEM COMPLETA com senha (após reset/criação)
     function msgCredenciaisCompletas(senha) {
       var nome = lote.responsavel_nome || 'Responsável';
       return 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
@@ -157,7 +160,6 @@
              '📍 @jimmys.londrina';
     }
 
-    // MENSAGEM SÓ COM LINK (sem senha — quando responsável já tem)
     function msgSoLink() {
       var nome = lote.responsavel_nome || 'Responsável';
       return 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
@@ -292,16 +294,19 @@
           tel = fmtTelefone(c.reservas.clientes.telefone);
           qtd = c.reservas.qtd_pessoas;
         }
+        var checkinTxt = c.checkin_em ? ' · 🚪 check-in ' + fmtDataHora(c.checkin_em) : '';
         var statusInfo = c.status === 'disponivel'
           ? '<div class="convite-status-line">⚪ Disponível</div><div class="convite-meta">' + escapeHtml(urlConvite(c.token)) + '</div>'
           : c.status === 'usado'
-            ? '<div class="convite-status-line">✓ ' + escapeHtml(nome) + (qtd ? ' · ' + qtd + 'p' : '') + '</div><div class="convite-meta">' + (tel ? '📞 ' + tel : '') + ' · usado em ' + fmtDataHora(c.usado_em) + '</div>'
+            ? '<div class="convite-status-line">✓ ' + escapeHtml(nome) + (qtd ? ' · ' + qtd + 'p' : '') + '</div><div class="convite-meta">' + (tel ? '📞 ' + tel : '') + ' · usado em ' + fmtDataHora(c.usado_em) + checkinTxt + '</div>'
             : '<div class="convite-status-line">✗ Cancelado</div>';
 
         var acoesHtml = '';
         if (c.status === 'disponivel') {
           acoesHtml = '<button type="button" class="btn btn-gold btn-sm" data-copy="' + c.token + '">📋</button>' +
                       '<button type="button" class="btn btn-ghost btn-sm" data-cancel="' + c.id + '">✗</button>';
+        } else if (c.status === 'usado') {
+          acoesHtml = '<a href="' + urlBilhete(c.token) + '" target="_blank" class="btn btn-secondary btn-sm" title="Ver bilhete">🎫</a>';
         }
 
         listaHtml += '<div class="convite-card ' + c.status + '">' +
@@ -318,7 +323,7 @@
       document.getElementById('conteudo').innerHTML = infoHtml + respHtml + statsHtml + toolbarHtml + chipsHtml + listaHtml;
 
       if (lote.responsavel_nome) {
-        document.getElementById('btn-copy-link').addEventListener('click', function(){ copiarTexto(urlPainel(), this); });
+        document.getElementById('btn-copy-link').addEventListener('click', function(){ copiarTexto(msgSoLink(), this); });
         document.getElementById('btn-wa-link').addEventListener('click', function(){
           window.open('https://wa.me/?text=' + encodeURIComponent(msgSoLink()), '_blank');
         });
@@ -460,11 +465,8 @@
         if (resp.error) throw new Error(resp.error.message);
         lote.responsavel_senha_hash = hash;
 
-        // Abre WhatsApp ANTES de mostrar modal (sincroniza melhor o open)
         var msg = msgCredenciaisCompletas(nova);
         window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
-
-        // Depois mostra dialog com a senha pra anotar
         mostrarSenhaNova(nova);
       } catch(err) { toast('Erro: ' + err.message, 'error'); }
     }
