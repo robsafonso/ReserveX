@@ -40,7 +40,7 @@
     <div class="pub-header">
       <div class="pub-stripes"><div class="pub-stripe r"></div><div class="pub-stripe w"></div><div class="pub-stripe b"></div></div>
       <div class="pub-logo">JIMMY<strong>'S</strong></div>
-      <div class="pub-sub">Sua Reserva</div>
+      <div class="pub-sub" id="pub-sub">Sua Reserva</div>
     </div>
 
     <div id="loading" class="estado">
@@ -59,7 +59,7 @@
 
     <div id="sucesso" class="estado" style="display:none;">
       <div class="estado-icon">🍻</div>
-      <div class="estado-titulo">Reserva Confirmada!</div>
+      <div class="estado-titulo" id="sucesso-titulo">Reserva Confirmada!</div>
       <div class="estado-sub" id="sucesso-msg"></div>
       <div class="info-card" id="sucesso-info"></div>
       <a href="https://wa.me/5543984129883" class="btn btn-secondary btn-block" target="_blank">💬 Falar com o Jimmy's</a>
@@ -98,7 +98,6 @@
 
     async function validarToken() {
       try {
-        // 1. Tenta como reserva avulsa (SIMPLES, sem join)
         var resR = await sb.from('reservas').select('*').eq('token', token).maybeSingle();
         if (resR.error) { mostrarInvalido('DEBUG reserva-query: ' + resR.error.message); return; }
 
@@ -107,7 +106,6 @@
           if (r.status === 'cancelada') { mostrarInvalido('Essa reserva foi cancelada.'); return; }
           if (r.expira_em && new Date(r.expira_em) < new Date()) { mostrarInvalido('Esse link já expirou.'); return; }
 
-          // Busca evento e cliente separadamente
           if (r.evento_id) {
             var ev = await sb.from('eventos').select('nome, data, valor_couvert').eq('id', r.evento_id).maybeSingle();
             eventoInfo = ev.data || null;
@@ -122,7 +120,6 @@
           return;
         }
 
-        // 2. Tenta como convite de lote (SIMPLES, sem join)
         var resC = await sb.from('convites').select('*').eq('token', token).maybeSingle();
         if (resC.error) { mostrarInvalido('DEBUG convite-query: ' + resC.error.message); return; }
         if (!resC.data) { mostrarInvalido('Token não encontrado em reservas nem em convites.'); return; }
@@ -131,7 +128,6 @@
         if (c.status === 'cancelado') { mostrarInvalido('Esse convite foi cancelado.'); return; }
         if (c.status === 'usado') { mostrarInvalido('Esse convite já foi usado.'); return; }
 
-        // Busca o lote separadamente
         if (!c.lote_id) { mostrarInvalido('Convite sem lote vinculado.'); return; }
         var resL = await sb.from('lotes').select('*').eq('id', c.lote_id).maybeSingle();
         if (resL.error) { mostrarInvalido('DEBUG lote-query: ' + resL.error.message); return; }
@@ -141,7 +137,6 @@
         if (lote.status !== 'ativo') { mostrarInvalido('O lote desse convite não está mais ativo.'); return; }
         if (lote.expira_em && new Date(lote.expira_em) < new Date()) { mostrarInvalido('Esse convite já expirou.'); return; }
 
-        // Busca o evento do lote
         if (lote.evento_id) {
           var ev2 = await sb.from('eventos').select('nome, data, valor_couvert').eq('id', lote.evento_id).maybeSingle();
           eventoInfo = ev2.data || null;
@@ -150,6 +145,8 @@
         modo = 'convite';
         dados = c;
         loteInfo = lote;
+        document.getElementById('pub-sub').textContent = 'Seu Convite';
+        document.getElementById('sucesso-titulo').textContent = 'Presença Confirmada!';
         mostrarFormulario();
       } catch(err) { mostrarInvalido('CATCH: ' + err.message); }
     }
@@ -160,7 +157,6 @@
       container.style.display = '';
 
       var dataEvento = modo === 'reserva' ? dados.data : (loteInfo ? loteInfo.data_evento : null);
-      var qtdPadrao = (modo === 'reserva' && dados.qtd_pessoas > 1) ? dados.qtd_pessoas : 2;
       var clienteExistente = modo === 'reserva' ? dados.clientes : null;
 
       var infoEvento = '';
@@ -191,14 +187,12 @@
 
         '<div class="form-group"><label class="form-label">Nome completo *</label><input type="text" id="f-nome" class="form-input" value="' + escapeHtml(clienteExistente ? clienteExistente.nome_completo : '') + '" placeholder="Seu nome"></div>' +
         '<div class="form-group"><label class="form-label">Telefone WhatsApp *</label><input type="tel" id="f-tel" class="form-input" inputmode="numeric" value="' + (clienteExistente && clienteExistente.telefone ? '(' + clienteExistente.telefone.slice(0,2) + ') ' + clienteExistente.telefone.slice(2,7) + '-' + clienteExistente.telefone.slice(7) : '') + '" placeholder="(43) 99999-9999"></div>' +
-        '<div class="form-group"><label class="form-label">CPF</label><input type="tel" id="f-cpf" class="form-input" inputmode="numeric" value="' + (clienteExistente && clienteExistente.cpf ? fmtCpf(clienteExistente.cpf) : '') + '" placeholder="000.000.000-00"></div>' +
+        '<div class="form-group"><label class="form-label">CPF ' + (modo === 'convite' ? '*' : '') + '</label><input type="tel" id="f-cpf" class="form-input" inputmode="numeric" value="' + (clienteExistente && clienteExistente.cpf ? fmtCpf(clienteExistente.cpf) : '') + '" placeholder="000.000.000-00"></div>' +
         '<div class="form-group"><label class="form-label">Instagram</label><input type="text" id="f-ig" class="form-input" value="' + escapeHtml(clienteExistente && clienteExistente.instagram ? clienteExistente.instagram : '') + '" placeholder="@seuusuario"></div>' +
 
-        (modo === 'convite' ? '<div class="form-group"><label class="form-label">Quantas pessoas? *</label><input type="number" id="f-qtd" class="form-input" inputmode="numeric" min="1" max="20" value="' + qtdPadrao + '"></div>' : '') +
+        (modo === 'reserva' ? '<div class="form-group"><label class="form-label">Observações</label><textarea id="f-obs" class="form-textarea" placeholder="Aniversário, alergias, mesa de canto..."></textarea></div>' : '') +
 
-        '<div class="form-group"><label class="form-label">Observações</label><textarea id="f-obs" class="form-textarea" placeholder="Aniversário, alergias, mesa de canto..."></textarea></div>' +
-
-        '<button type="button" class="btn btn-primary btn-block" id="btn-confirmar" style="margin-top:var(--space-md);">✓ Confirmar Reserva</button>';
+        '<button type="button" class="btn btn-primary btn-block" id="btn-confirmar" style="margin-top:var(--space-md);">' + (modo === 'convite' ? '🎟️ Confirmar Presença' : '✓ Confirmar Reserva') + '</button>';
 
       aplicarMascaraTel(document.getElementById('f-tel'));
       aplicarMascaraCPF(document.getElementById('f-cpf'));
@@ -211,19 +205,15 @@
         var tel = document.getElementById('f-tel').value.replace(/\D/g, '');
         var cpf = document.getElementById('f-cpf').value.replace(/\D/g, '');
         var ig = document.getElementById('f-ig').value.trim();
-        var obs = document.getElementById('f-obs').value.trim();
+        var obsEl = document.getElementById('f-obs');
+        var obs = obsEl ? obsEl.value.trim() : '';
 
         if (!nome || nome.length < 3) { toast('Nome obrigatório', 'error'); return; }
         if (!tel || tel.length < 10) { toast('Telefone inválido', 'error'); return; }
+        if (modo === 'convite' && !cpf) { toast('CPF obrigatório pra convite', 'error'); return; }
         if (cpf && cpf.length !== 11) { toast('CPF inválido', 'error'); return; }
 
-        var qtd;
-        if (modo === 'convite') {
-          qtd = parseInt(document.getElementById('f-qtd').value, 10);
-          if (!qtd || qtd < 1 || qtd > 20) { toast('Quantidade inválida (1-20)', 'error'); return; }
-        } else {
-          qtd = dados.qtd_pessoas || 1;
-        }
+        var qtd = (modo === 'convite') ? 1 : (dados.qtd_pessoas || 1);
 
         var btn = document.getElementById('btn-confirmar');
         btn.disabled = true;
@@ -281,13 +271,14 @@
             tenant_id: tenantId,
             cliente_id: clienteId,
             data: loteInfo.data_evento,
-            qtd_pessoas: qtd,
+            qtd_pessoas: 1,
             status: 'confirmada',
             origem: 'convite',
             evento_id: loteInfo.evento_id || null,
             lote_id: loteInfo.id,
             convite_id: dados.id,
-            observacoes: obs || null
+            criada_por: loteInfo.criado_por || null,
+            confirmada_por: loteInfo.criado_por || null
           }).select('id').maybeSingle();
           if (novaReserva.error) throw new Error(novaReserva.error.message);
 
@@ -307,7 +298,7 @@
       } catch(err) {
         toast('Erro: ' + err.message, 'error');
         var btn = document.getElementById('btn-confirmar');
-        if (btn) { btn.disabled = false; btn.innerHTML = '✓ Confirmar Reserva'; }
+        if (btn) { btn.disabled = false; btn.innerHTML = (modo === 'convite' ? '🎟️ Confirmar Presença' : '✓ Confirmar Reserva'); }
       }
     }
 
@@ -315,10 +306,12 @@
       document.getElementById('form-container').style.display = 'none';
       document.getElementById('sucesso').style.display = '';
       var dataEvento = modo === 'reserva' ? dados.data : loteInfo.data_evento;
-      document.getElementById('sucesso-msg').textContent = nome.split(' ')[0] + ', sua reserva tá confirmada!';
-      var info = '<div class="info-row"><span class="info-l">📅 Data</span><span class="info-v">' + fmtData(dataEvento) + '</span></div>' +
-        '<div class="info-row"><span class="info-l">👥 Pessoas</span><span class="info-v">' + qtd + '</span></div>';
+      var msg = nome.split(' ')[0] + (modo === 'convite' ? ', sua presença tá confirmada!' : ', sua reserva tá confirmada!');
+      document.getElementById('sucesso-msg').textContent = msg;
+      var info = '<div class="info-row"><span class="info-l">📅 Data</span><span class="info-v">' + fmtData(dataEvento) + '</span></div>';
+      if (modo === 'reserva') info += '<div class="info-row"><span class="info-l">👥 Pessoas</span><span class="info-v">' + qtd + '</span></div>';
       if (eventoInfo) info += '<div class="info-row"><span class="info-l">🎤 Evento</span><span class="info-v">' + escapeHtml(eventoInfo.nome) + '</span></div>';
+      if (modo === 'convite') info += '<div class="info-row"><span class="info-l">🎟️ Convite</span><span class="info-v">#' + dados.numero_convite + '</span></div>';
       document.getElementById('sucesso-info').innerHTML = info;
     }
 
