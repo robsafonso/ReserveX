@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mapa · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=1">
+  <link rel="stylesheet" href="assets/styles.css?v=3">
   <script>
     window.addEventListener('error', function(e) {
       alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?'));
@@ -29,14 +29,14 @@
     .mesa-card:active { transform: scale(0.97); }
     .mesa-card.livre { border-color: #404040; }
     .mesa-card.reservada { border-color: var(--color-info); background: rgba(10, 49, 97, 0.15); }
-    .mesa-card.em_uso { border-color: var(--color-success); background: rgba(45, 106, 79, 0.15); }
+    .mesa-card.em_uso { border-color: var(--color-green); background: rgba(42, 171, 71, 0.15); }
     .mesa-card.bloqueada { border-color: var(--color-warning); background: rgba(201, 151, 60, 0.1); opacity: 0.7; }
     .mesa-nome { font-family: var(--font-display); font-size: 1.625rem; line-height: 1; color: var(--color-cream); letter-spacing: 0.05em; margin-bottom: 4px; }
     .mesa-cap { font-size: 0.75rem; color: var(--text-muted); }
     .mesa-status { position: absolute; top: 6px; right: 6px; font-size: 0.625rem; padding: 2px 6px; border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
     .mesa-status.livre { background: #404040; color: var(--text-secondary); }
     .mesa-status.reservada { background: var(--color-info); color: #fff; }
-    .mesa-status.em_uso { background: var(--color-success); color: #fff; }
+    .mesa-status.em_uso { background: var(--color-green); color: #fff; }
     .mesa-status.bloqueada { background: var(--color-warning); color: #000; }
     .mesa-cliente { font-size: 0.6875rem; color: var(--color-gold); margin-top: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .legend { display: flex; flex-wrap: wrap; gap: var(--space-md); font-size: 0.75rem; color: var(--text-muted); margin-bottom: var(--space-lg); justify-content: center; }
@@ -56,7 +56,7 @@
     <div class="topbar-inner">
       <a href="home.html" class="brand">
         <div class="brand-logo">JIMMY<strong>'S</strong></div>
-        <span class="brand-badge">v1.0</span>
+        <span class="brand-badge">v1.1</span>
       </a>
       <div class="user-menu">
         <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
@@ -83,7 +83,7 @@
     <div class="legend">
       <div class="legend-item"><span class="legend-dot" style="border-color:#404040"></span> Livre</div>
       <div class="legend-item"><span class="legend-dot" style="border-color:var(--color-info)"></span> Reservada</div>
-      <div class="legend-item"><span class="legend-dot" style="border-color:var(--color-success)"></span> Em uso</div>
+      <div class="legend-item"><span class="legend-dot" style="border-color:var(--color-green)"></span> Em uso</div>
       <div class="legend-item"><span class="legend-dot" style="border-color:var(--color-warning)"></span> Bloqueada</div>
     </div>
 
@@ -101,7 +101,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=1"></script>
+  <script src="assets/supabase.js?v=3"></script>
   <script>
 (function(){
   try {
@@ -113,7 +113,7 @@
     var reservasHoje = [];
     var checkinsHoje = [];
     var mesaSelecionada = null;
-    var dataFiltro = new Date().toISOString().split('T')[0];
+    var dataFiltro = hojeISO();
 
     var modalMesa = document.getElementById('modal-mesa');
 
@@ -140,7 +140,7 @@
         if (r.error) throw new Error(r.error.message);
         reservasHoje = r.data || [];
 
-        var c = await sb.from('checkins').select('id,mesa_id,cliente_id,qtd_real_pessoas,hora_chegada,hora_saida,clientes(nome_completo)').eq('tenant_id', TENANT_ID).gte('hora_chegada', dataFiltro + 'T00:00:00').lte('hora_chegada', dataFiltro + 'T23:59:59').is('hora_saida', null);
+        var c = await sb.from('checkins').select('id,mesa_id,cliente_id,qtd_real_pessoas,hora_chegada,hora_saida,clientes(nome_completo)').eq('tenant_id', TENANT_ID).gte('hora_chegada', dataFiltro + 'T00:00:00-03:00').lte('hora_chegada', dataFiltro + 'T23:59:59-03:00').is('hora_saida', null);
         if (c.error) throw new Error(c.error.message);
         checkinsHoje = c.data || [];
 
@@ -260,7 +260,7 @@
       carregar();
     });
     document.getElementById('btn-hoje').addEventListener('click', function(){
-      dataFiltro = new Date().toISOString().split('T')[0];
+      dataFiltro = hojeISO();
       document.getElementById('data-filtro').value = dataFiltro;
       carregar();
     });
