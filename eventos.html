@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eventos · ReserveX · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=2">
+  <script>
+    window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
+    window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
+  </script>
+  <style>
+    .stats-row { display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); flex-wrap: wrap; }
+    .stat-pill { flex: 1; min-width: 90px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 10px; text-align: center; }
+    .stat-pill-v { font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: var(--color-cream); }
+    .stat-pill-l { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-md); align-items: center; }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); overflow-x: auto; }
+    .chip { padding: 6px 14px; border-radius: var(--radius-full); background: var(--bg-tertiary); border: 1px solid var(--border-default); color: var(--text-secondary); font-size: 0.8125rem; cursor: pointer; white-space: nowrap; }
+    .chip.active { background: var(--color-red); color: #fff; border-color: var(--color-red); }
+    .evento-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); margin-bottom: var(--space-sm); cursor: pointer; overflow: hidden; }
+    .evento-card.ativo { border-left: 4px solid var(--color-success); }
+    .evento-card.rascunho { border-left: 4px solid var(--color-warning); opacity: 0.85; }
+    .evento-card.cancelado { border-left: 4px solid var(--color-error); opacity: 0.6; }
+    .evento-card.encerrado { border-left: 4px solid #404040; opacity: 0.7; }
+    .evento-banner { width: 100%; height: 120px; background: linear-gradient(135deg, rgba(200,16,46,0.15), rgba(201,151,60,0.15)); background-size: cover; background-position: center; }
+    .evento-body { padding: var(--space-md); }
+    .evento-row { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-md); }
+    .evento-info { flex: 1; min-width: 0; }
+    .evento-nome { font-family: var(--font-display); color: var(--color-cream); font-size: 1.125rem; margin-bottom: 4px; letter-spacing: 0.03em; }
+    .evento-meta { display: flex; gap: var(--space-md); font-size: 0.8125rem; color: var(--text-muted); flex-wrap: wrap; }
+    .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+    .modal-backdrop.active { display: flex; }
+    .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-default); }
+    .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
+    .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
+    .empty { text-align: center; padding: var(--space-2xl) var(--space-md); color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.4; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="home.html" class="brand">
+        <div class="brand-logo">JIMMY<strong>'S</strong></div>
+        <span class="brand-badge">v1.0</span>
+      </a>
+      <div class="user-menu">
+        <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
+      </div>
+    </div>
+  </header>
+  <main class="container fade-in">
+    <h1 style="font-family: var(--font-display); margin-bottom: var(--space-sm);">🎤 Eventos</h1>
+    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Shows, festas e atrações especiais.</p>
+
+    <div class="stats-row">
+      <div class="stat-pill"><div class="stat-pill-v" id="s-prox">—</div><div class="stat-pill-l">Próximos</div></div>
+      <div class="stat-pill"><div class="stat-pill-v" id="s-ativ">—</div><div class="stat-pill-l">Ativos</div></div>
+      <div class="stat-pill"><div class="stat-pill-v" id="s-rasc">—</div><div class="stat-pill-l">Rascunhos</div></div>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" id="btn-novo">+ Novo Evento</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻</button>
+    </div>
+
+    <div class="filter-chips" id="chips">
+      <span class="chip active" data-filtro="proximos">📅 Próximos</span>
+      <span class="chip" data-filtro="todos">Todos</span>
+      <span class="chip" data-filtro="ativo">Ativos</span>
+      <span class="chip" data-filtro="rascunho">Rascunhos</span>
+      <span class="chip" data-filtro="encerrado">Encerrados</span>
+      <span class="chip" data-filtro="cancelado">Cancelados</span>
+    </div>
+
+    <div id="lista-eventos"></div>
+  </main>
+
+  <div class="modal-backdrop" id="modal-evento">
+    <div class="modal-box">
+      <div class="modal-header"><div class="modal-title" id="me-titulo">Evento</div><button type="button" class="close-btn" id="btn-fechar">✕</button></div>
+      <div id="me-body"></div>
+      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);flex-wrap:wrap;">
+        <button type="button" class="btn btn-primary" id="btn-salvar">Salvar</button>
+        <button type="button" class="btn btn-secondary" id="btn-cancelar">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btn-deletar" style="margin-left:auto;">🗑️</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=2"></script>
+  <script>
+(function(){
+  try {
+    var admin = exigirLogin();
+    if (!admin) return;
+
+    var eventosCache = [];
+    var filtroAtivo = 'proximos';
+    var eventoEditando = null;
+    var modal = document.getElementById('modal-evento');
+
+    function escapeHtml(s){ if(s==null)return ''; return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
+    async function carregar() {
+      try {
+        var resp = await sb.from('eventos').select('*').eq('tenant_id', TENANT_ID).order('data', { ascending: true });
+        if (resp.error) throw new Error(resp.error.message);
+        eventosCache = resp.data || [];
+        atualizarStats();
+        renderizar();
+      } catch(err) { alert('Erro: ' + err.message); }
+    }
+
+    function atualizarStats() {
+      var hoje = new Date().toISOString().split('T')[0];
+      document.getElementById('s-prox').textContent = eventosCache.filter(function(e){return e.data >= hoje && e.status !== 'cancelado';}).length;
+      document.getElementById('s-ativ').textContent = eventosCache.filter(function(e){return e.status === 'ativo';}).length;
+      document.getElementById('s-rasc').textContent = eventosCache.filter(function(e){return e.status === 'rascunho';}).length;
+    }
+
+    function renderizar() {
+      var hoje = new Date().toISOString().split('T')[0];
+      var filtrados = eventosCache;
+      if (filtroAtivo === 'proximos') {
+        filtrados = filtrados.filter(function(e){return e.data >= hoje && e.status !== 'cancelado';});
+      } else if (filtroAtivo !== 'todos') {
+        filtrados = filtrados.filter(function(e){return e.status === filtroAtivo;});
+      }
+
+      var el = document.getElementById('lista-eventos');
+      if (filtrados.length === 0) {
+        el.innerHTML = '<div class="empty"><div class="empty-icon">🎤</div><p>Nenhum evento ' + (filtroAtivo !== 'todos' ? filtroAtivo : '') + '.</p><p style="font-size:0.875rem;margin-top:8px;">Cadastra um show, festa ou DJ.</p></div>';
+        return;
+      }
+
+      var html = '';
+      filtrados.forEach(function(e){
+        var bannerStyle = e.banner_url ? 'background-image:url(' + escapeHtml(e.banner_url) + ');' : '';
+        var statusBadge = e.status === 'ativo' ? 'green' : e.status === 'rascunho' ? 'gold' : e.status === 'cancelado' ? 'red' : 'gray';
+        var horaStr = '';
+        if (e.hora_inicio) {
+          horaStr = '<span>🕐 ' + e.hora_inicio.substring(0,5);
+          if (e.hora_fim) horaStr += '–' + e.hora_fim.substring(0,5);
+          horaStr += '</span>';
+        }
+        html += '<div class="evento-card ' + e.status + '" data-id="' + e.id + '">' +
+          (e.banner_url ? '<div class="evento-banner" style="' + bannerStyle + '"></div>' : '') +
+          '<div class="evento-body">' +
+            '<div class="evento-row">' +
+              '<div class="evento-info">' +
+                '<div class="evento-nome">' + escapeHtml(e.nome) + '</div>' +
+                '<div class="evento-meta">' +
+                  '<span>📅 ' + fmtData(e.data) + '</span>' +
+                  horaStr +
+                  (e.valor_couvert > 0 ? '<span>🎫 R$ ' + parseFloat(e.valor_couvert).toFixed(2).replace('.',',') + '</span>' : '') +
+                  (e.capacidade_max ? '<span>👥 até ' + e.capacidade_max + '</span>' : '') +
+                '</div>' +
+                (e.descricao ? '<div style="font-size:0.8125rem;color:var(--text-secondary);margin-top:8px;">' + escapeHtml(e.descricao.substring(0,100)) + (e.descricao.length>100?'…':'') + '</div>' : '') +
+              '</div>' +
+              '<span class="badge badge-' + statusBadge + '">' + e.status + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      });
+      el.innerHTML = html;
+
+      Array.prototype.forEach.call(el.querySelectorAll('.evento-card'), function(c){
+        c.addEventListener('click', function(){ abrirModal(c.dataset.id); });
+      });
+    }
+
+    function abrirModal(id) {
+      eventoEditando = id ? eventosCache.find(function(e){return e.id === id;}) : null;
+      var e = eventoEditando || {};
+      document.getElementById('me-titulo').textContent = id ? 'Editar Evento' : 'Novo Evento';
+      document.getElementById('btn-deletar').style.display = id ? '' : 'none';
+
+      document.getElementById('me-body').innerHTML =
+        '<div class="form-group"><label class="form-label">Nome do evento *</label><input type="text" id="f-nome" class="form-input" value="' + escapeHtml(e.nome || '') + '" placeholder="Ex: Show do Country Beat"></div>' +
+        '<div class="form-group"><label class="form-label">Descrição</label><textarea id="f-desc" class="form-textarea" placeholder="Detalhes do evento, atrações...">' + escapeHtml(e.descricao || '') + '</textarea></div>' +
+        '<div class="form-group"><label class="form-label">Data *</label><input type="date" id="f-data" class="form-input" value="' + (e.data || '') + '"></div>' +
+        '<div class="row-2">' +
+          '<div class="form-group"><label class="form-label">Hora início</label><input type="time" id="f-hi" class="form-input" value="' + (e.hora_inicio ? e.hora_inicio.substring(0,5) : '') + '"></div>' +
+          '<div class="form-group"><label class="form-label">Hora fim</label><input type="time" id="f-hf" class="form-input" value="' + (e.hora_fim ? e.hora_fim.substring(0,5) : '') + '"></div>' +
+        '</div>' +
+        '<div class="row-2">' +
+          '<div class="form-group"><label class="form-label">Couvert (R$)</label><input type="number" id="f-couvert" class="form-input" inputmode="decimal" min="0" step="0.01" value="' + (e.valor_couvert || 0) + '"></div>' +
+          '<div class="form-group"><label class="form-label">Capacidade máx</label><input type="number" id="f-cap" class="form-input" inputmode="numeric" min="1" value="' + (e.capacidade_max || '') + '" placeholder="opcional"></div>' +
+        '</div>' +
+        '<div class="form-group"><label class="form-label">URL do banner (opcional)</label><input type="url" id="f-banner" class="form-input" value="' + escapeHtml(e.banner_url || '') + '" placeholder="https://..."></div>' +
+        '<div class="form-group"><label class="form-label">Status</label><select id="f-status" class="form-select">' +
+          '<option value="rascunho"' + (e.status === 'rascunho' || !e.status ? ' selected' : '') + '>📝 Rascunho</option>' +
+          '<option value="ativo"' + (e.status === 'ativo' ? ' selected' : '') + '>✓ Ativo (publicado)</option>' +
+          '<option value="cancelado"' + (e.status === 'cancelado' ? ' selected' : '') + '>✗ Cancelado</option>' +
+          '<option value="encerrado"' + (e.status === 'encerrado' ? ' selected' : '') + '>⊗ Encerrado</option>' +
+        '</select></div>';
+
+      modal.classList.add('active');
+    }
+
+    function fecharModal() {
+      modal.classList.remove('active');
+      eventoEditando = null;
+    }
+
+    async function salvar() {
+      try {
+        var nome = document.getElementById('f-nome').value.trim();
+        var desc = document.getElementById('f-desc').value.trim();
+        var data = document.getElementById('f-data').value;
+        var hi = document.getElementById('f-hi').value || null;
+        var hf = document.getElementById('f-hf').value || null;
+        var couvert = parseFloat(document.getElementById('f-couvert').value) || 0;
+        var capStr = document.getElementById('f-cap').value;
+        var cap = capStr ? parseInt(capStr, 10) : null;
+        var banner = document.getElementById('f-banner').value.trim() || null;
+        var status = document.getElementById('f-status').value;
+
+        if (!nome) { toast('Nome é obrigatório', 'error'); return; }
+        if (!data) { toast('Data é obrigatória', 'error'); return; }
+
+        var dados = {
+          tenant_id: TENANT_ID,
+          nome: nome,
+          descricao: desc || null,
+          data: data,
+          hora_inicio: hi,
+          hora_fim: hf,
+          valor_couvert: couvert,
+          capacidade_max: cap,
+          banner_url: banner,
+          status: status
+        };
+        if (!eventoEditando) dados.criado_por = admin.id;
+
+        var resp;
+        if (eventoEditando) resp = await sb.from('eventos').update(dados).eq('id', eventoEditando.id);
+        else resp = await sb.from('eventos').insert(dados);
+
+        if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+        toast(eventoEditando ? 'Evento atualizado ✓' : 'Evento criado ✓', 'success');
+        fecharModal();
+        carregar();
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
+    async function deletar() {
+      if (!eventoEditando) return;
+      if (!confirm('Deletar evento "' + eventoEditando.nome + '"?\nReservas vinculadas perderão a referência.')) return;
+      var resp = await sb.from('eventos').delete().eq('id', eventoEditando.id);
+      if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+      toast('Evento deletado', 'success');
+      fecharModal();
+      carregar();
+    }
+
+    document.getElementById('btn-novo').addEventListener('click', function(){ abrirModal(); });
+    document.getElementById('btn-refresh').addEventListener('click', carregar);
+    document.getElementById('btn-salvar').addEventListener('click', salvar);
+    document.getElementById('btn-deletar').addEventListener('click', deletar);
+    document.getElementById('btn-fechar').addEventListener('click', fecharModal);
+    document.getElementById('btn-cancelar').addEventListener('click', fecharModal);
+    Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(chip){
+      chip.addEventListener('click', function(){
+        Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(c){ c.classList.remove('active'); });
+        chip.classList.add('active');
+        filtroAtivo = chip.dataset.filtro;
+        renderizar();
+      });
+    });
+    modal.addEventListener('click', function(e){ if (e.target === modal) fecharModal(); });
+
+    carregar();
+  } catch(err) { alert('Erro fatal: ' + err.message); }
+})();
+  </script>
+</body>
+</html>
