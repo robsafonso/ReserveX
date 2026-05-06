@@ -81,8 +81,25 @@ async function fazerLogin(usuario, senha) {
 }
 
 // =====================================================
-// HELPERS GERAIS
+// HELPERS DE DATA (sem bug de timezone)
 // =====================================================
+
+function hojeISO() {
+  // Retorna YYYY-MM-DD da data LOCAL (sem timezone bug)
+  var d = new Date();
+  var ano = d.getFullYear();
+  var mes = String(d.getMonth() + 1).padStart(2, '0');
+  var dia = String(d.getDate()).padStart(2, '0');
+  return ano + '-' + mes + '-' + dia;
+}
+
+function diaSemanaPT(dataISO) {
+  if (!dataISO || !/^\d{4}-\d{2}-\d{2}$/.test(dataISO)) return '';
+  var p = dataISO.split('-');
+  var d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+  var dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  return dias[d.getDay()];
+}
 
 function fmtData(data) {
   if (!data) return '-';
@@ -125,10 +142,10 @@ function copiarTexto(texto, btnEl) {
   if (btnEl) {
     const original = btnEl.textContent;
     btnEl.textContent = '✓ Copiado!';
-    btnEl.classList.add('btn-gold');
+    btnEl.classList.add('btn-success');
     setTimeout(() => {
       btnEl.textContent = original;
-      btnEl.classList.remove('btn-gold');
+      btnEl.classList.remove('btn-success');
     }, 1500);
   }
 }
