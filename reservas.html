@@ -50,9 +50,15 @@
     .mesa-grid-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
     .mesa-opt { padding: 10px 4px; background: var(--bg-tertiary); border: 2px solid var(--border-default); border-radius: var(--radius-md); cursor: pointer; text-align: center; }
     .mesa-opt:active { transform: scale(0.97); }
-    .mesa-opt.sel { border-color: var(--color-gold); background: rgba(201, 151, 60, 0.15); }
+    .mesa-opt.ideal { border-color: var(--color-success); background: rgba(45, 106, 79, 0.08); }
+    .mesa-opt.apertado { border-color: var(--color-warning); background: rgba(201, 151, 60, 0.06); }
+    .mesa-opt.sel { border-color: var(--color-gold) !important; background: rgba(201, 151, 60, 0.25) !important; }
     .mesa-opt-nome { font-family: var(--font-display); font-size: 1.25rem; color: var(--color-cream); line-height: 1; }
     .mesa-opt-cap { font-size: 0.625rem; color: var(--text-muted); margin-top: 4px; }
+    .mesa-opt.apertado .mesa-opt-cap { color: var(--color-warning); }
+    .legenda-cores { display: flex; gap: var(--space-md); font-size: 0.75rem; color: var(--text-muted); margin-bottom: var(--space-md); flex-wrap: wrap; }
+    .legenda-item { display: flex; align-items: center; gap: 6px; }
+    .legenda-dot { width: 12px; height: 12px; border-radius: 3px; border: 2px solid; }
   </style>
 </head>
 <body>
@@ -156,7 +162,7 @@
     var mesaSelecionadaForm = null;
     var mesaPickerCallback = null;
     var mesaPickerSelecionada = null;
-    var checkInDepoisDeMesa = false;
+    var mesaPickerQtd = 1;
 
     var modalLink = document.getElementById('modal-link');
     var modalReserva = document.getElementById('modal-reserva');
@@ -223,28 +229,41 @@
       return r.data || [];
     }
 
-    async function abrirSeletorMesa(dataAlvo, ignorarReservaId, mesaAtualId, callback) {
+    async function abrirSeletorMesa(dataAlvo, ignorarReservaId, mesaAtualId, qtdPessoas, callback) {
       mesaPickerCallback = callback;
       mesaPickerSelecionada = mesaAtualId || null;
+      mesaPickerQtd = qtdPessoas || 1;
       modalMesaPick.classList.add('active');
       document.getElementById('mp-body').innerHTML = '<div class="empty"><div class="spinner" style="margin:0 auto;"></div></div>';
 
       var reservasNaData = (dataAlvo === dataFiltro) ? reservasCache : await buscarReservasNaData(dataAlvo);
       var ocupadas = reservasNaData.filter(function(r){ return r.mesa_id && r.id !== ignorarReservaId; }).map(function(r){ return r.mesa_id; });
 
-      var html = '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Mesas disponíveis para <strong>' + fmtData(dataAlvo) + '</strong>:</p>';
+      var html = '<p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:var(--space-md);">Mesas pra <strong>' + fmtData(dataAlvo) + '</strong> · <strong>' + mesaPickerQtd + ' pessoa(s)</strong></p>' +
+        '<div class="legenda-cores">' +
+          '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-success)"></span>Cabe folgado (≥' + mesaPickerQtd + ')</div>' +
+          '<div class="legenda-item"><span class="legenda-dot" style="border-color:var(--color-warning)"></span>Apertado (puxar cadeira)</div>' +
+        '</div>';
+
       var temAlguma = false;
 
       setoresCache.forEach(function(s){
         var mesasSetor = mesasCache.filter(function(m){
           return m.setor_id === s.id && ocupadas.indexOf(m.id) < 0 && m.status !== 'bloqueada';
         });
+        mesasSetor.sort(function(a,b){
+          var aIdeal = a.capacidade >= mesaPickerQtd ? 0 : 1;
+          var bIdeal = b.capacidade >= mesaPickerQtd ? 0 : 1;
+          if (aIdeal !== bIdeal) return aIdeal - bIdeal;
+          return (a.nome || '').localeCompare(b.nome || '');
+        });
         if (mesasSetor.length === 0) return;
         temAlguma = true;
         html += '<div class="setor-grupo"><div class="setor-titulo"><span class="setor-pill" style="background:' + s.cor + '"></span>' + escapeHtml(s.nome) + '</div><div class="mesa-grid-pick">';
         mesasSetor.forEach(function(m){
           var sel = m.id === mesaPickerSelecionada ? 'sel' : '';
-          html += '<div class="mesa-opt ' + sel + '" data-id="' + m.id + '"><div class="mesa-opt-nome">' + escapeHtml(m.nome) + '</div><div class="mesa-opt-cap">' + m.capacidade + 'p</div></div>';
+          var classe = m.capacidade >= mesaPickerQtd ? 'ideal' : 'apertado';
+          html += '<div class="mesa-opt ' + classe + ' ' + sel + '" data-id="' + m.id + '"><div class="mesa-opt-nome">' + escapeHtml(m.nome) + '</div><div class="mesa-opt-cap">' + m.capacidade + 'p</div></div>';
         });
         html += '</div></div>';
       });
@@ -326,7 +345,6 @@
       });
     }
 
-    // ===== GERAR LINK =====
     function abrirModalLink() {
       document.getElementById('lf-data').value = dataFiltro;
       document.getElementById('link-body').style.display = '';
@@ -368,7 +386,6 @@
       document.getElementById('link-resultado').style.display = 'none';
     }
 
-    // ===== DETALHES RESERVA =====
     function abrirModalReserva(id) {
       reservaSelecionada = reservasCache.find(function(r){return r.id === id;});
       if (!reservaSelecionada) return;
@@ -388,7 +405,6 @@
           '<button type="button" class="btn btn-gold acao-btn" id="btn-rec-copiar">📋 Copiar link</button>';
       }
 
-      // Mesa
       var mesaInfo = '';
       var podeMudarMesa = ['pendente','confirmada','em_uso'].indexOf(r.status) >= 0 && r.clientes;
       if (r.mesas) {
@@ -432,8 +448,7 @@
 
       var btnTM = document.getElementById('btn-trocar-mesa');
       if (btnTM) btnTM.addEventListener('click', function(){
-        checkInDepoisDeMesa = false;
-        abrirSeletorMesa(r.data, r.id, r.mesa_id, function(novaMesaId){
+        abrirSeletorMesa(r.data, r.id, r.mesa_id, r.qtd_pessoas, function(novaMesaId){
           alterarMesa(novaMesaId);
         });
       });
@@ -447,8 +462,7 @@
       var bU = document.getElementById('btn-checkin');
       if (bU) bU.addEventListener('click', function(){
         if (!r.mesa_id) {
-          checkInDepoisDeMesa = true;
-          abrirSeletorMesa(r.data, r.id, null, function(novaMesaId){
+          abrirSeletorMesa(r.data, r.id, null, r.qtd_pessoas, function(novaMesaId){
             if (novaMesaId) {
               alterarMesa(novaMesaId, true);
             } else {
@@ -491,7 +505,6 @@
       carregar();
     }
 
-    // ===== RESERVA MANUAL =====
     function abrirModalManual() {
       clienteEncontrado = null;
       mesaSelecionadaForm = null;
@@ -596,9 +609,9 @@
       var btnPM = document.getElementById('btn-pick-mesa');
       if (btnPM) btnPM.addEventListener('click', function(){
         var data = document.getElementById('r-data').value;
-        abrirSeletorMesa(data, null, mesaSelecionadaForm, function(novaMesaId){
+        var qtd = parseInt(document.getElementById('r-pessoas').value, 10) || 1;
+        abrirSeletorMesa(data, null, mesaSelecionadaForm, qtd, function(novaMesaId){
           mesaSelecionadaForm = novaMesaId;
-          // Re-render apenas o bloco de mesa pra atualizar visual
           if (clienteEncontrado) mostrarClienteEncontrado();
           else mostrarFormularioNovo(
             document.getElementById('novo-tel') ? document.getElementById('novo-tel').value.replace(/\D/g,'') : '',
@@ -650,7 +663,6 @@
       } catch(err) { toast('Erro: ' + err.message, 'error'); }
     }
 
-    // ===== EVENTS =====
     document.getElementById('data-filtro').addEventListener('change', function(e){ dataFiltro = e.target.value; carregar(); });
     document.getElementById('btn-hoje').addEventListener('click', function(){
       dataFiltro = new Date().toISOString().split('T')[0];
