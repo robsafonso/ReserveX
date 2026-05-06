@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lotes · ReserveX · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=2">
+  <script>
+    window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
+    window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
+  </script>
+  <style>
+    .stats-row { display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); flex-wrap: wrap; }
+    .stat-pill { flex: 1; min-width: 90px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 10px; text-align: center; }
+    .stat-pill-v { font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: var(--color-cream); }
+    .stat-pill-l { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-md); align-items: center; }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); overflow-x: auto; }
+    .chip { padding: 6px 14px; border-radius: var(--radius-full); background: var(--bg-tertiary); border: 1px solid var(--border-default); color: var(--text-secondary); font-size: 0.8125rem; cursor: pointer; white-space: nowrap; }
+    .chip.active { background: var(--color-red); color: #fff; border-color: var(--color-red); }
+    .lote-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-sm); cursor: pointer; }
+    .lote-card.ativo { border-left: 4px solid var(--color-success); }
+    .lote-card.cancelado { border-left: 4px solid var(--color-error); opacity: 0.6; }
+    .lote-card.encerrado { border-left: 4px solid #404040; opacity: 0.7; }
+    .lote-row { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-md); }
+    .lote-info { flex: 1; min-width: 0; }
+    .lote-nome { font-family: var(--font-display); color: var(--color-cream); font-size: 1.125rem; margin-bottom: 4px; letter-spacing: 0.03em; }
+    .lote-meta { display: flex; gap: var(--space-md); font-size: 0.8125rem; color: var(--text-muted); flex-wrap: wrap; }
+    .progresso-bar { height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+    .progresso-fill { height: 100%; background: linear-gradient(90deg, var(--color-success), var(--color-gold)); transition: width 0.3s; }
+    .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+    .modal-backdrop.active { display: flex; }
+    .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-default); }
+    .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
+    .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
+    .empty { text-align: center; padding: var(--space-2xl) var(--space-md); color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.4; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="home.html" class="brand">
+        <div class="brand-logo">JIMMY<strong>'S</strong></div>
+        <span class="brand-badge">v1.0</span>
+      </a>
+      <div class="user-menu">
+        <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
+      </div>
+    </div>
+  </header>
+  <main class="container fade-in">
+    <h1 style="font-family: var(--font-display); margin-bottom: var(--space-sm);">🎟️ Lotes de Convites</h1>
+    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Gere convites em massa pra eventos e dias especiais.</p>
+
+    <div class="stats-row">
+      <div class="stat-pill"><div class="stat-pill-v" id="s-ativos">—</div><div class="stat-pill-l">Lotes ativos</div></div>
+      <div class="stat-pill"><div class="stat-pill-v" id="s-conv">—</div><div class="stat-pill-l">Convites no total</div></div>
+      <div class="stat-pill"><div class="stat-pill-v" id="s-usados">—</div><div class="stat-pill-l">Usados</div></div>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" id="btn-novo">+ Novo Lote</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻</button>
+    </div>
+
+    <div class="filter-chips" id="chips">
+      <span class="chip active" data-filtro="ativos">Ativos</span>
+      <span class="chip" data-filtro="todos">Todos</span>
+      <span class="chip" data-filtro="cancelado">Cancelados</span>
+      <span class="chip" data-filtro="encerrado">Encerrados</span>
+    </div>
+
+    <div id="lista-lotes"></div>
+  </main>
+
+  <div class="modal-backdrop" id="modal-novo">
+    <div class="modal-box">
+      <div class="modal-header"><div class="modal-title">+ Novo Lote</div><button type="button" class="close-btn" id="btn-fechar">✕</button></div>
+      <div id="novo-body"></div>
+      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);">
+        <button type="button" class="btn btn-primary" id="btn-criar" style="flex:1;">🎟️ Criar Lote + Gerar Convites</button>
+        <button type="button" class="btn btn-secondary" id="btn-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=2"></script>
+  <script>
+(function(){
+  try {
+    var admin = exigirLogin();
+    if (!admin) return;
+
+    function hojeISO(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+    var lotesCache = [];
+    var eventosCache = [];
+    var filtroAtivo = 'ativos';
+    var modal = document.getElementById('modal-novo');
+
+    function escapeHtml(s){if(s==null)return ''; return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+    async function carregar() {
+      try {
+        var l = await sb.from('lotes').select('*, eventos(nome)').eq('tenant_id', TENANT_ID).order('created_at', { ascending: false });
+        if (l.error) throw new Error(l.error.message);
+        lotesCache = l.data || [];
+
+        var e = await sb.from('eventos').select('*').eq('tenant_id', TENANT_ID).in('status', ['ativo','rascunho']).order('data');
+        eventosCache = e.data || [];
+
+        atualizarStats();
+        renderizar();
+      } catch(err) { alert('Erro: ' + err.message); }
+    }
+
+    function atualizarStats() {
+      var ativos = lotesCache.filter(function(l){return l.status === 'ativo';});
+      document.getElementById('s-ativos').textContent = ativos.length;
+      document.getElementById('s-conv').textContent = ativos.reduce(function(a,b){return a + (b.total_convites||0);}, 0);
+      document.getElementById('s-usados').textContent = ativos.reduce(function(a,b){return a + (b.usados||0);}, 0);
+    }
+
+    function renderizar() {
+      var filtrados = lotesCache;
+      if (filtroAtivo === 'ativos') filtrados = filtrados.filter(function(l){return l.status === 'ativo';});
+      else if (filtroAtivo !== 'todos') filtrados = filtrados.filter(function(l){return l.status === filtroAtivo;});
+
+      var el = document.getElementById('lista-lotes');
+      if (filtrados.length === 0) {
+        el.innerHTML = '<div class="empty"><div class="empty-icon">🎟️</div><p>Nenhum lote ' + (filtroAtivo !== 'todos' ? filtroAtivo : '') + '.</p><p style="font-size:0.875rem;margin-top:8px;">Cria um lote pra gerar convites em massa.</p></div>';
+        return;
+      }
+
+      var html = '';
+      filtrados.forEach(function(l){
+        var perc = l.total_convites > 0 ? Math.round((l.usados / l.total_convites) * 100) : 0;
+        var statusBadge = l.status === 'ativo' ? 'green' : l.status === 'cancelado' ? 'red' : 'gray';
+        html += '<div class="lote-card ' + l.status + '" data-id="' + l.id + '">' +
+          '<div class="lote-row">' +
+            '<div class="lote-info">' +
+              '<div class="lote-nome">' + escapeHtml(l.nome) + '</div>' +
+              '<div class="lote-meta">' +
+                '<span>📅 ' + fmtData(l.data_evento) + '</span>' +
+                (l.eventos ? '<span>🎤 ' + escapeHtml(l.eventos.nome) + '</span>' : '') +
+                '<span>🎟️ ' + l.usados + ' / ' + l.total_convites + '</span>' +
+              '</div>' +
+              '<div class="progresso-bar"><div class="progresso-fill" style="width:' + perc + '%"></div></div>' +
+              (l.descricao ? '<div style="font-size:0.8125rem;color:var(--text-secondary);margin-top:8px;">' + escapeHtml(l.descricao.substring(0,80)) + (l.descricao.length>80?'…':'') + '</div>' : '') +
+            '</div>' +
+            '<span class="badge badge-' + statusBadge + '">' + l.status + '</span>' +
+          '</div>' +
+        '</div>';
+      });
+      el.innerHTML = html;
+
+      Array.prototype.forEach.call(el.querySelectorAll('.lote-card'), function(c){
+        c.addEventListener('click', function(){ window.location.href = 'lote_detalhes.html?id=' + c.dataset.id; });
+      });
+    }
+
+    function abrirNovo() {
+      var eventosOptions = '<option value="">Sem evento (dia normal)</option>';
+      eventosCache.forEach(function(e){
+        eventosOptions += '<option value="' + e.id + '" data-data="' + e.data + '">' + escapeHtml(e.nome) + ' · ' + fmtData(e.data) + '</option>';
+      });
+
+      document.getElementById('novo-body').innerHTML =
+        '<div class="form-group"><label class="form-label">Nome do lote *</label><input type="text" id="f-nome" class="form-input" placeholder="Ex: Convidados Bday Carta"></div>' +
+        '<div class="form-group"><label class="form-label">Evento (opcional)</label><select id="f-evento" class="form-select">' + eventosOptions + '</select></div>' +
+        '<div class="row-2">' +
+          '<div class="form-group"><label class="form-label">Data *</label><input type="date" id="f-data" class="form-input" value="' + hojeISO() + '"></div>' +
+          '<div class="form-group"><label class="form-label">Qtd de convites *</label><input type="number" id="f-qtd" class="form-input" inputmode="numeric" min="1" max="500" value="30"></div>' +
+        '</div>' +
+        '<div class="form-group"><label class="form-label">Validade do link (dias)</label><select id="f-validade" class="form-select"><option value="0">Sem validade</option><option value="1">1 dia</option><option value="3">3 dias</option><option value="7" selected>7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option></select></div>' +
+        '<div class="form-group"><label class="form-label">Descrição</label><textarea id="f-desc" class="form-textarea" placeholder="Anota algo pra lembrar depois (ex: lista da Maria)"></textarea></div>';
+
+      var fEv = document.getElementById('f-evento');
+      fEv.addEventListener('change', function(){
+        var sel = fEv.options[fEv.selectedIndex];
+        if (sel && sel.dataset.data) document.getElementById('f-data').value = sel.dataset.data;
+      });
+
+      modal.classList.add('active');
+    }
+
+    async function criarLote() {
+      try {
+        var nome = document.getElementById('f-nome').value.trim();
+        var eventoId = document.getElementById('f-evento').value || null;
+        var data = document.getElementById('f-data').value;
+        var qtd = parseInt(document.getElementById('f-qtd').value, 10);
+        var validade = parseInt(document.getElementById('f-validade').value, 10);
+        var desc = document.getElementById('f-desc').value.trim();
+
+        if (!nome) { toast('Nome obrigatório', 'error'); return; }
+        if (!data) { toast('Data obrigatória', 'error'); return; }
+        if (!qtd || qtd < 1) { toast('Qtd inválida', 'error'); return; }
+        if (qtd > 500) { toast('Máximo 500 por lote', 'error'); return; }
+
+        var btn = document.getElementById('btn-criar');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;display:inline-block;vertical-align:middle;"></span> Gerando ' + qtd + ' convites...';
+
+        var expiraEm = validade > 0 ? new Date(Date.now() + validade * 24 * 3600 * 1000).toISOString() : null;
+
+        // 1. Cria o lote
+        var lote = await sb.from('lotes').insert({
+          tenant_id: TENANT_ID,
+          evento_id: eventoId,
+          data_evento: data,
+          nome: nome,
+          descricao: desc || null,
+          total_convites: qtd,
+          usados: 0,
+          expira_em: expiraEm,
+          status: 'ativo',
+          criado_por: admin.id
+        }).select('id').maybeSingle();
+
+        if (lote.error) throw new Error(lote.error.message);
+        var loteId = lote.data.id;
+
+        // 2. Gera os N convites
+        var convites = [];
+        for (var i = 1; i <= qtd; i++) {
+          convites.push({
+            tenant_id: TENANT_ID,
+            lote_id: loteId,
+            token: gerarToken(20),
+            status: 'disponivel',
+            numero_convite: i
+          });
+        }
+
+        var resp = await sb.from('convites').insert(convites);
+        if (resp.error) throw new Error(resp.error.message);
+
+        toast('🎟️ Lote criado com ' + qtd + ' convites ✓', 'success');
+        modal.classList.remove('active');
+        // Vai direto pra detalhes
+        window.location.href = 'lote_detalhes.html?id=' + loteId;
+      } catch(err) {
+        toast('Erro: ' + err.message, 'error');
+        var btn = document.getElementById('btn-criar');
+        if (btn) { btn.disabled = false; btn.innerHTML = '🎟️ Criar Lote + Gerar Convites'; }
+      }
+    }
+
+    document.getElementById('btn-novo').addEventListener('click', abrirNovo);
+    document.getElementById('btn-refresh').addEventListener('click', carregar);
+    document.getElementById('btn-criar').addEventListener('click', criarLote);
+    document.getElementById('btn-fechar').addEventListener('click', function(){ modal.classList.remove('active'); });
+    document.getElementById('btn-cancelar').addEventListener('click', function(){ modal.classList.remove('active'); });
+    Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(chip){
+      chip.addEventListener('click', function(){
+        Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(c){ c.classList.remove('active'); });
+        chip.classList.add('active');
+        filtroAtivo = chip.dataset.filtro;
+        renderizar();
+      });
+    });
+    modal.addEventListener('click', function(e){ if (e.target === modal) modal.classList.remove('active'); });
+
+    carregar();
+  } catch(err) { alert('Erro fatal: ' + err.message); }
+})();
+  </script>
+</body>
+</html>
