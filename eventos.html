@@ -150,6 +150,9 @@
           if (e.hora_fim) horaStr += '–' + e.hora_fim.substring(0,5);
           horaStr += '</span>';
         }
+        var bilheteStr = (e.bilhete_dias_antes && e.bilhete_dias_antes > 0)
+          ? '<span>🎫 ' + e.bilhete_dias_antes + 'd antes</span>'
+          : '<span>🎫 imediato</span>';
         html += '<div class="evento-card ' + e.status + '">' +
           (e.banner_url ? '<div class="evento-banner evento-clickarea" data-detalhes="' + e.id + '" style="' + bannerStyle + '"></div>' : '') +
           '<div class="evento-body evento-clickarea" data-detalhes="' + e.id + '">' +
@@ -161,6 +164,7 @@
                   horaStr +
                   (e.valor_couvert > 0 ? '<span>🎫 R$ ' + parseFloat(e.valor_couvert).toFixed(2).replace('.',',') + '</span>' : '') +
                   (e.capacidade_max ? '<span>👥 até ' + e.capacidade_max + '</span>' : '') +
+                  bilheteStr +
                 '</div>' +
                 (e.descricao ? '<div style="font-size:0.8125rem;color:var(--text-secondary);margin-top:8px;">' + escapeHtml(e.descricao.substring(0,100)) + (e.descricao.length>100?'…':'') + '</div>' : '') +
               '</div>' +
@@ -179,13 +183,14 @@
         c.addEventListener('click', function(){ window.location.href = 'evento_detalhes.html?id=' + c.dataset.detalhes; });
       });
       Array.prototype.forEach.call(el.querySelectorAll('button[data-edit]'), function(b){
-        b.addEventListener('click', function(){ abrirModal(b.dataset.edit); });
+        b.addEventListener('click', function(ev){ ev.stopPropagation(); abrirModal(b.dataset.edit); });
       });
     }
 
     function abrirModal(id) {
       eventoEditando = id ? eventosCache.find(function(e){return e.id === id;}) : null;
       var e = eventoEditando || {};
+      var bilheteVal = (e.bilhete_dias_antes != null) ? e.bilhete_dias_antes : 0;
       document.getElementById('me-titulo').textContent = id ? 'Editar Evento' : 'Novo Evento';
       document.getElementById('btn-deletar').style.display = id ? '' : 'none';
 
@@ -202,6 +207,17 @@
           '<div class="form-group"><label class="form-label">Capacidade máx</label><input type="number" id="f-cap" class="form-input" inputmode="numeric" min="1" value="' + (e.capacidade_max || '') + '" placeholder="opcional"></div>' +
         '</div>' +
         '<div class="form-group"><label class="form-label">URL do banner (opcional)</label><input type="url" id="f-banner" class="form-input" value="' + escapeHtml(e.banner_url || '') + '" placeholder="https://..."></div>' +
+        '<div class="form-group"><label class="form-label">🎫 Bilhete dos convites fica visível</label>' +
+          '<select id="f-bilhete-dias" class="form-select">' +
+            '<option value="0"' + (bilheteVal === 0 ? ' selected' : '') + '>Imediato (assim que confirmar)</option>' +
+            '<option value="3"' + (bilheteVal === 3 ? ' selected' : '') + '>3 dias antes do evento</option>' +
+            '<option value="5"' + (bilheteVal === 5 ? ' selected' : '') + '>5 dias antes do evento</option>' +
+            '<option value="7"' + (bilheteVal === 7 ? ' selected' : '') + '>7 dias antes do evento</option>' +
+            '<option value="10"' + (bilheteVal === 10 ? ' selected' : '') + '>10 dias antes do evento</option>' +
+            '<option value="15"' + (bilheteVal === 15 ? ' selected' : '') + '>15 dias antes do evento</option>' +
+          '</select>' +
+          '<p style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">💡 Quando criar lote pra esse evento, esse será o padrão.</p>' +
+        '</div>' +
         '<div class="form-group"><label class="form-label">Status</label><select id="f-status" class="form-select">' +
           '<option value="rascunho"' + (e.status === 'rascunho' || !e.status ? ' selected' : '') + '>📝 Rascunho</option>' +
           '<option value="ativo"' + (e.status === 'ativo' ? ' selected' : '') + '>✓ Ativo (publicado)</option>' +
@@ -229,6 +245,7 @@
         var cap = capStr ? parseInt(capStr, 10) : null;
         var banner = document.getElementById('f-banner').value.trim() || null;
         var status = document.getElementById('f-status').value;
+        var bilheteDias = parseInt(document.getElementById('f-bilhete-dias').value, 10) || 0;
 
         if (!nome) { toast('Nome é obrigatório', 'error'); return; }
         if (!data) { toast('Data é obrigatória', 'error'); return; }
@@ -243,7 +260,8 @@
           valor_couvert: couvert,
           capacidade_max: cap,
           banner_url: banner,
-          status: status
+          status: status,
+          bilhete_dias_antes: bilheteDias
         };
         if (!eventoEditando) dados.criado_por = admin.id;
 
