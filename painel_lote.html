@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel do Responsável · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=3">
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+  <script>
+    window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
+    window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
+  </script>
+  <style>
+    body { background: #0d0d0d; min-height: 100vh; }
+    .login-wrap { max-width: 480px; margin: 0 auto; padding: var(--space-2xl) var(--space-lg); }
+    .login-header { text-align: center; padding: var(--space-2xl) 0 var(--space-lg); }
+    .login-stripes { display: flex; justify-content: center; gap: 6px; margin-bottom: var(--space-md); }
+    .login-stripe { width: 38px; height: 5px; border-radius: 2px; }
+    .login-stripe.r { background: var(--color-red); }
+    .login-stripe.w { background: var(--color-cream); }
+    .login-stripe.b { background: var(--color-navy); }
+    .login-logo { font-family: var(--font-display); font-size: 3.25rem; letter-spacing: 0.08em; color: var(--color-cream); line-height: 1; }
+    .login-logo strong { font-family: 'Playfair Display', serif; font-style: italic; color: var(--color-red); font-weight: 900; }
+    .login-sub { font-size: 0.8125rem; letter-spacing: 0.3em; color: var(--color-gold); text-transform: uppercase; margin-top: 8px; }
+    .login-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-top: 3px solid var(--color-gold); border-radius: var(--radius-md); padding: var(--space-lg); margin-top: var(--space-lg); }
+    .login-titulo { font-family: var(--font-display); color: var(--color-cream); font-size: 1.5rem; margin-bottom: 4px; }
+    .login-meta { font-size: 0.875rem; color: var(--text-muted); margin-bottom: var(--space-lg); }
+
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); margin-bottom: var(--space-lg); }
+    @media (min-width: 600px) { .stats-row { grid-template-columns: repeat(4, 1fr); } }
+    .stat-card-l { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); text-align: center; }
+    .stat-card-l.gold { border-top: 3px solid var(--color-gold); }
+    .stat-card-l.green { border-top: 3px solid var(--color-green); }
+    .stat-card-l.gray { border-top: 3px solid #555; }
+    .stat-v { font-family: var(--font-display); font-size: 1.75rem; line-height: 1; color: var(--color-cream); }
+    .stat-l { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
+    .info-box { background: var(--bg-secondary); border: 1px solid var(--border-default); border-top: 3px solid var(--color-gold); border-radius: var(--radius-md); padding: var(--space-lg); margin-bottom: var(--space-lg); }
+    .info-titulo { font-family: var(--font-display); color: var(--color-cream); font-size: 1.5rem; margin-bottom: 8px; }
+    .info-meta { display: flex; gap: var(--space-md); font-size: 0.875rem; color: var(--text-muted); flex-wrap: wrap; }
+    .progresso-box { margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border-default); }
+    .progresso-bar { height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden; margin-top: 8px; }
+    .progresso-fill { height: 100%; background: linear-gradient(90deg, var(--color-green), var(--color-gold)); transition: width 0.3s; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); overflow-x: auto; }
+    .chip { padding: 6px 14px; border-radius: var(--radius-full); background: var(--bg-tertiary); border: 1px solid var(--border-default); color: var(--text-secondary); font-size: 0.8125rem; cursor: pointer; white-space: nowrap; }
+    .chip.active { background: var(--color-red); color: #fff; border-color: var(--color-red); }
+    .convite-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: 8px; display: flex; gap: var(--space-md); align-items: center; }
+    .convite-card.disponivel { border-left: 3px solid #555; }
+    .convite-card.usado { border-left: 3px solid var(--color-green); background: rgba(42,171,71,0.05); }
+    .convite-card.cancelado { border-left: 3px solid var(--color-error); opacity: 0.6; }
+    .convite-num { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-gold); width: 50px; text-align: center; }
+    .convite-info { flex: 1; min-width: 0; }
+    .convite-status-line { font-size: 0.875rem; color: var(--color-cream); font-weight: 600; }
+    .convite-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; word-break: break-all; }
+    .convite-acoes { display: flex; flex-direction: column; gap: 4px; }
+
+    .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+    .modal-backdrop.active { display: flex; }
+    .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-default); }
+    .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
+    .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
+    .links-textarea { width: 100%; min-height: 220px; background: var(--bg-tertiary); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: var(--space-md); color: var(--color-cream); font-size: 0.8125rem; font-family: monospace; resize: vertical; word-break: break-all; }
+    .empty { text-align: center; padding: var(--space-2xl) var(--space-md); color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.4; }
+    .footer-info { text-align: center; padding: var(--space-lg) 0; color: var(--text-muted); font-size: 0.8125rem; }
+    .footer-info strong { color: var(--color-gold); }
+  </style>
+</head>
+<body>
+  <div id="login-screen" style="display:none;">
+    <div class="login-wrap">
+      <div class="login-header">
+        <div class="login-stripes"><div class="login-stripe r"></div><div class="login-stripe w"></div><div class="login-stripe b"></div></div>
+        <div class="login-logo">JIMMY<strong>'S</strong></div>
+        <div class="login-sub">Painel do Responsável</div>
+      </div>
+      <div id="login-info"></div>
+    </div>
+  </div>
+
+  <div id="painel-screen" style="display:none;">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-logo">JIMMY<strong>'S</strong></div>
+          <span class="brand-badge">v1.1</span>
+        </div>
+        <div class="user-menu">
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-sair">Sair</button>
+        </div>
+      </div>
+    </header>
+    <main class="container fade-in">
+      <div id="painel-conteudo"></div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modal-links">
+    <div class="modal-box">
+      <div class="modal-header"><div class="modal-title">📋 Copiar Todos os Links</div><button type="button" class="close-btn" id="btn-fechar-links">✕</button></div>
+      <p class="text-secondary" style="font-size:0.875rem;margin-bottom:var(--space-md);">Cada linha é um link único. Distribua entre os convidados.</p>
+      <textarea class="links-textarea" id="links-area" readonly></textarea>
+      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-md);">
+        <button type="button" class="btn btn-gold" id="btn-copiar-todos" style="flex:1;">📋 Copiar Tudo</button>
+        <button type="button" class="btn btn-secondary" id="btn-whatsapp-todos">💬 WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=3"></script>
+  <script>
+(function(){
+  try {
+    var BCRYPT = (window.dcodeIO && window.dcodeIO.bcrypt) || window.bcrypt;
+    var loteId = new URLSearchParams(window.location.search).get('id');
+    if (!loteId) {
+      document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#fff;">Link inválido. Procure pelo responsável do bar.</div>';
+      return;
+    }
+
+    var lote = null;
+    var convitesCache = [];
+    var filtroAtivo = 'todos';
+    var modalLinks = document.getElementById('modal-links');
+    var sessionKey = 'painel_lote_' + loteId;
+
+    function escapeHtml(s){if(s==null)return ''; return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+    function urlConvite(token) {
+      return window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'cadastro.html?token=' + token;
+    }
+
+    function msgConvidado(token) {
+      return 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
+             'Você está convidado(a)! 🍻\n\n' +
+             '🎟️ Confirme sua presença no link:\n' + urlConvite(token) + '\n\n' +
+             '📅 Data: ' + fmtData(lote.data_evento) + '\n' +
+             (lote.eventos ? '🎤 Evento: ' + lote.eventos.nome + '\n' : '') +
+             '\n' +
+             'Após confirmar, você receberá seu bilhete digital.\n\n' +
+             'Te esperamos!\n' +
+             'Jimmy\'s Bar · Londrina PR\n' +
+             '📞 43 98412-9883 · 📍 @jimmys.londrina';
+    }
+
+    async function buscarLote() {
+      var l = await sb.from('lotes').select('*, eventos(nome)').eq('id', loteId).maybeSingle();
+      if (l.error) throw new Error(l.error.message);
+      if (!l.data) throw new Error('Lote não encontrado.');
+      lote = l.data;
+    }
+
+    async function init() {
+      try {
+        await buscarLote();
+
+        if (sessionStorage.getItem(sessionKey) === 'true') {
+          mostrarPainel();
+        } else {
+          mostrarLogin();
+        }
+      } catch(err) {
+        document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#fff;">' + err.message + '</div>';
+      }
+    }
+
+    function mostrarLogin() {
+      document.getElementById('login-screen').style.display = '';
+      document.getElementById('painel-screen').style.display = 'none';
+
+      if (!lote.responsavel_nome) {
+        document.getElementById('login-info').innerHTML =
+          '<div class="login-card">' +
+            '<div class="login-titulo">⚠ Sem responsável</div>' +
+            '<p class="text-secondary" style="margin-top:8px;">Esse lote ainda não tem responsável cadastrado. Procure o gestor do bar.</p>' +
+          '</div>';
+        return;
+      }
+
+      document.getElementById('login-info').innerHTML =
+        '<div class="login-card">' +
+          '<div class="login-titulo">' + escapeHtml(lote.nome) + '</div>' +
+          '<div class="login-meta">' +
+            '👤 ' + escapeHtml(lote.responsavel_nome) + ' · 📅 ' + fmtData(lote.data_evento) +
+            (lote.eventos ? ' · 🎤 ' + escapeHtml(lote.eventos.nome) : '') +
+          '</div>' +
+          '<div class="form-group"><label class="form-label">Senha *</label><input type="password" id="login-senha" class="form-input" placeholder="Digite sua senha" autocomplete="off"></div>' +
+          '<button type="button" class="btn btn-primary btn-block" id="btn-entrar">Entrar</button>' +
+        '</div>' +
+        '<div class="footer-info" style="margin-top:var(--space-lg);">' +
+          '📞 Reservas: <strong>43 98412-9883</strong><br>📍 @jimmys.londrina' +
+        '</div>';
+
+      var input = document.getElementById('login-senha');
+      input.addEventListener('keypress', function(e){ if (e.key === 'Enter') tentarEntrar(); });
+      document.getElementById('btn-entrar').addEventListener('click', tentarEntrar);
+    }
+
+    function tentarEntrar() {
+      var senha = document.getElementById('login-senha').value;
+      if (!senha) { toast('Digite a senha', 'error'); return; }
+      if (!BCRYPT) { toast('Erro carregando bcrypt. Recarrega a página.', 'error'); return; }
+      var ok = false;
+      try { ok = BCRYPT.compareSync(senha, lote.responsavel_senha_hash || ''); } catch(e) { ok = false; }
+      if (!ok) { toast('Senha incorreta', 'error'); return; }
+      sessionStorage.setItem(sessionKey, 'true');
+      mostrarPainel();
+    }
+
+    function mostrarPainel() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('painel-screen').style.display = '';
+      carregarConvites();
+    }
+
+    async function carregarConvites() {
+      try {
+        var c = await sb.from('convites')
+          .select('*, reservas!convites_reserva_id_fkey(qtd_pessoas, status, clientes(nome_completo, telefone))')
+          .eq('lote_id', loteId)
+          .order('numero_convite', { ascending: true });
+        if (c.error) throw new Error(c.error.message);
+        convitesCache = c.data || [];
+        renderizar();
+      } catch(err) {
+        document.getElementById('painel-conteudo').innerHTML = '<div class="alert alert-error">' + err.message + '</div>';
+      }
+    }
+
+    function renderizar() {
+      var disponiveis = convitesCache.filter(function(c){return c.status === 'disponivel';}).length;
+      var usados = convitesCache.filter(function(c){return c.status === 'usado';}).length;
+      var cancelados = convitesCache.filter(function(c){return c.status === 'cancelado';}).length;
+      var perc = lote.total_convites > 0 ? Math.round((usados / lote.total_convites) * 100) : 0;
+
+      var infoHtml = '<div class="info-box">' +
+        '<div class="info-titulo">' + escapeHtml(lote.nome) + '</div>' +
+        '<div class="info-meta">' +
+          '<span>📅 ' + fmtData(lote.data_evento) + '</span>' +
+          (lote.eventos ? '<span>🎤 ' + escapeHtml(lote.eventos.nome) + '</span>' : '') +
+          '<span>👤 ' + escapeHtml(lote.responsavel_nome) + '</span>' +
+        '</div>' +
+        '<div class="progresso-box">' +
+          '<div style="display:flex;justify-content:space-between;font-size:0.875rem;color:var(--text-secondary);">' +
+            '<span>Confirmados: <strong style="color:var(--color-cream);">' + usados + ' / ' + lote.total_convites + '</strong></span>' +
+            '<span style="color:var(--color-gold);">' + perc + '%</span>' +
+          '</div>' +
+          '<div class="progresso-bar"><div class="progresso-fill" style="width:' + perc + '%"></div></div>' +
+        '</div>' +
+      '</div>';
+
+      var statsHtml = '<div class="stats-row">' +
+        '<div class="stat-card-l gold"><div class="stat-v">' + lote.total_convites + '</div><div class="stat-l">Total</div></div>' +
+        '<div class="stat-card-l gray"><div class="stat-v">' + disponiveis + '</div><div class="stat-l">Disponíveis</div></div>' +
+        '<div class="stat-card-l green"><div class="stat-v">' + usados + '</div><div class="stat-l">Confirmados</div></div>' +
+        '<div class="stat-card-l"><div class="stat-v">' + cancelados + '</div><div class="stat-l">Cancelados</div></div>' +
+      '</div>';
+
+      var toolbarHtml = '<div class="toolbar">' +
+        '<button type="button" class="btn btn-gold" id="btn-copiar-massa">📋 Copiar Todos os Links</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻</button>' +
+      '</div>';
+
+      var filtrados = convitesCache;
+      if (filtroAtivo === 'disponivel') filtrados = filtrados.filter(function(c){return c.status === 'disponivel';});
+      else if (filtroAtivo === 'usado') filtrados = filtrados.filter(function(c){return c.status === 'usado';});
+      else if (filtroAtivo === 'cancelado') filtrados = filtrados.filter(function(c){return c.status === 'cancelado';});
+
+      var chipsHtml = '<div class="filter-chips" id="chips">' +
+        '<span class="chip ' + (filtroAtivo === 'todos' ? 'active' : '') + '" data-filtro="todos">Todos (' + convitesCache.length + ')</span>' +
+        '<span class="chip ' + (filtroAtivo === 'disponivel' ? 'active' : '') + '" data-filtro="disponivel">Disponíveis (' + disponiveis + ')</span>' +
+        '<span class="chip ' + (filtroAtivo === 'usado' ? 'active' : '') + '" data-filtro="usado">Confirmados (' + usados + ')</span>' +
+      '</div>';
+
+      var listaHtml = '';
+      filtrados.forEach(function(c){
+        var nome = '', tel = '', qtd = '';
+        if (c.reservas && c.reservas.clientes) {
+          nome = c.reservas.clientes.nome_completo;
+          tel = fmtTelefone(c.reservas.clientes.telefone);
+          qtd = c.reservas.qtd_pessoas;
+        }
+        var statusInfo = c.status === 'disponivel'
+          ? '<div class="convite-status-line">⚪ Disponível</div><div class="convite-meta">' + escapeHtml(urlConvite(c.token)) + '</div>'
+          : c.status === 'usado'
+            ? '<div class="convite-status-line">✓ ' + escapeHtml(nome) + (qtd ? ' · ' + qtd + 'p' : '') + '</div><div class="convite-meta">' + (tel ? '📞 ' + tel : '') + ' · confirmado em ' + fmtDataHora(c.usado_em) + '</div>'
+            : '<div class="convite-status-line">✗ Cancelado</div>';
+
+        var acoesHtml = '';
+        if (c.status === 'disponivel') {
+          acoesHtml = '<button type="button" class="btn btn-gold btn-sm" data-copy="' + c.token + '">📋</button>' +
+                      '<button type="button" class="btn btn-secondary btn-sm" data-wa="' + c.token + '">💬</button>';
+        }
+
+        listaHtml += '<div class="convite-card ' + c.status + '">' +
+          '<div class="convite-num">#' + c.numero_convite + '</div>' +
+          '<div class="convite-info">' + statusInfo + '</div>' +
+          (acoesHtml ? '<div class="convite-acoes">' + acoesHtml + '</div>' : '') +
+        '</div>';
+      });
+
+      if (filtrados.length === 0) {
+        listaHtml = '<div class="empty"><div class="empty-icon">🎟️</div><p>Nenhum convite ' + (filtroAtivo !== 'todos' ? filtroAtivo : '') + '.</p></div>';
+      }
+
+      document.getElementById('painel-conteudo').innerHTML = infoHtml + statsHtml + toolbarHtml + chipsHtml + listaHtml;
+
+      document.getElementById('btn-copiar-massa').addEventListener('click', abrirModalLinks);
+      document.getElementById('btn-refresh').addEventListener('click', carregarConvites);
+
+      Array.prototype.forEach.call(document.querySelectorAll('#chips .chip'), function(chip){
+        chip.addEventListener('click', function(){ filtroAtivo = chip.dataset.filtro; renderizar(); });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('button[data-copy]'), function(b){
+        b.addEventListener('click', function(){ copiarTexto(urlConvite(b.dataset.copy), b); });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('button[data-wa]'), function(b){
+        b.addEventListener('click', function(){
+          window.open('https://wa.me/?text=' + encodeURIComponent(msgConvidado(b.dataset.wa)), '_blank');
+        });
+      });
+    }
+
+    function abrirModalLinks() {
+      var disponiveis = convitesCache.filter(function(c){return c.status === 'disponivel';});
+      var linhas = disponiveis.map(function(c){ return '#' + c.numero_convite + ' → ' + urlConvite(c.token); });
+      document.getElementById('links-area').value = linhas.join('\n');
+      modalLinks.classList.add('active');
+    }
+
+    function copiarTodosLinks() {
+      var area = document.getElementById('links-area');
+      copiarTexto(area.value, document.getElementById('btn-copiar-todos'));
+    }
+
+    function whatsappTodos() {
+      var disponiveis = convitesCache.filter(function(c){return c.status === 'disponivel';});
+      var msg = 'JIMMY\'S Bar 🇺🇸🔥\n\n' + lote.nome + '\n📅 ' + fmtData(lote.data_evento) + '\n\n';
+      msg += 'Cada link é único e individual. Distribua entre os convidados:\n\n';
+      msg += disponiveis.map(function(c){ return c.numero_convite + '. ' + urlConvite(c.token); }).join('\n\n');
+      msg += '\n\nJimmy\'s Bar · Londrina PR';
+      window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    }
+
+    document.getElementById('btn-fechar-links').addEventListener('click', function(){ modalLinks.classList.remove('active'); });
+    document.getElementById('btn-copiar-todos').addEventListener('click', copiarTodosLinks);
+    document.getElementById('btn-whatsapp-todos').addEventListener('click', whatsappTodos);
+    modalLinks.addEventListener('click', function(e){ if (e.target === modalLinks) modalLinks.classList.remove('active'); });
+    document.getElementById('btn-sair').addEventListener('click', function(){
+      sessionStorage.removeItem(sessionKey);
+      mostrarLogin();
+    });
+
+    init();
+  } catch(err) { alert('Erro fatal: ' + err.message); }
+})();
+  </script>
+</body>
+</html>
