@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Detalhes do Lote · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=2">
+  <link rel="stylesheet" href="assets/styles.css?v=3">
   <script>
     window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
     window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
@@ -15,12 +15,12 @@
     .info-meta { display: flex; gap: var(--space-md); font-size: 0.875rem; color: var(--text-muted); flex-wrap: wrap; }
     .progresso-box { margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border-default); }
     .progresso-bar { height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden; margin-top: 8px; }
-    .progresso-fill { height: 100%; background: linear-gradient(90deg, var(--color-success), var(--color-gold)); transition: width 0.3s; }
+    .progresso-fill { height: 100%; background: linear-gradient(90deg, var(--color-green), var(--color-gold)); transition: width 0.3s; }
     .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); margin-bottom: var(--space-lg); }
     @media (min-width: 600px) { .stats-row { grid-template-columns: repeat(4, 1fr); } }
     .stat-card-l { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); text-align: center; }
     .stat-card-l.gold { border-top: 3px solid var(--color-gold); }
-    .stat-card-l.green { border-top: 3px solid var(--color-success); }
+    .stat-card-l.green { border-top: 3px solid var(--color-green); }
     .stat-card-l.blue { border-top: 3px solid var(--color-info); }
     .stat-card-l.gray { border-top: 3px solid #555; }
     .stat-v { font-family: var(--font-display); font-size: 1.75rem; line-height: 1; color: var(--color-cream); }
@@ -31,7 +31,7 @@
     .chip.active { background: var(--color-red); color: #fff; border-color: var(--color-red); }
     .convite-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: 8px; display: flex; gap: var(--space-md); align-items: center; }
     .convite-card.disponivel { border-left: 3px solid #555; }
-    .convite-card.usado { border-left: 3px solid var(--color-success); background: rgba(45,106,79,0.05); }
+    .convite-card.usado { border-left: 3px solid var(--color-green); background: rgba(42,171,71,0.05); }
     .convite-card.cancelado { border-left: 3px solid var(--color-error); opacity: 0.6; }
     .convite-num { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-gold); width: 50px; text-align: center; }
     .convite-info { flex: 1; min-width: 0; }
@@ -54,7 +54,7 @@
     <div class="topbar-inner">
       <a href="home.html" class="brand">
         <div class="brand-logo">JIMMY<strong>'S</strong></div>
-        <span class="brand-badge">v1.0</span>
+        <span class="brand-badge">v1.1</span>
       </a>
       <div class="user-menu">
         <a href="lotes.html" class="btn btn-ghost btn-sm">← Lotes</a>
@@ -78,7 +78,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=2"></script>
+  <script src="assets/supabase.js?v=3"></script>
   <script>
 (function(){
   try {
@@ -215,9 +215,7 @@
 
       Array.prototype.forEach.call(document.querySelectorAll('button[data-copy]'), function(b){
         b.addEventListener('click', function(){
-          navigator.clipboard.writeText(urlConvite(b.dataset.copy));
-          b.textContent = '✓';
-          setTimeout(function(){ b.textContent = '📋'; }, 1500);
+          copiarTexto(urlConvite(b.dataset.copy), b);
         });
       });
 
@@ -235,17 +233,16 @@
 
     function copiarTodosLinks() {
       var area = document.getElementById('links-area');
-      navigator.clipboard.writeText(area.value);
       var btn = document.getElementById('btn-copiar-todos');
-      btn.textContent = '✓ Copiado!';
-      setTimeout(function(){ btn.innerHTML = '📋 Copiar Tudo'; }, 1500);
+      copiarTexto(area.value, btn);
     }
 
     function whatsappTodos() {
       var disponiveis = convitesCache.filter(function(c){return c.status === 'disponivel';});
-      var msg = '🇺🇸🔥 Convite Jimmy\'s Bar\n\n' + lote.nome + '\n📅 ' + fmtData(lote.data_evento) + '\n\n';
+      var msg = 'JIMMY\'S Bar 🇺🇸🔥\n\n' + lote.nome + '\n📅 ' + fmtData(lote.data_evento) + '\n\n';
       msg += 'Cada link é único e individual. Distribua entre os convidados:\n\n';
       msg += disponiveis.map(function(c){ return c.numero_convite + '. ' + urlConvite(c.token); }).join('\n\n');
+      msg += '\n\nJimmy\'s Bar · Londrina PR';
       window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
     }
 
