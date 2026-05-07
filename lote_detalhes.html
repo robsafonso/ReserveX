@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Detalhes do Lote · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=3">
+  <link rel="stylesheet" href="assets/styles.css?v=4">
   <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
   <script>
     window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
@@ -101,7 +101,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=3"></script>
+  <script src="assets/supabase.js?v=4"></script>
   <script>
 (function(){
   try {
@@ -189,6 +189,22 @@
              'Jimmy\'s Bar · Londrina PR\n' +
              '📞 43 98412-9883\n' +
              '📍 @jimmys.londrina';
+    }
+
+    function msgListaConvites(disponiveis) {
+      var msg = 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
+                '📋 Lista de convites — ' + lote.nome + '\n' +
+                '📅 ' + fmtData(lote.data_evento) + '\n' +
+                (lote.eventos ? '🎤 ' + lote.eventos.nome + '\n' : '') +
+                '\n' +
+                'Cada link é único e individual. Distribua um por convidado:\n\n';
+      msg += disponiveis.map(function(c){ return '#' + c.numero_convite + ' → ' + urlConvite(c.token); }).join('\n\n');
+      msg += '\n\n' +
+             'Após confirmar, cada convidado recebe seu bilhete digital com QR.\n\n' +
+             'Jimmy\'s Bar · Londrina PR\n' +
+             '📞 43 98412-9883\n' +
+             '📍 @jimmys.londrina';
+      return msg;
     }
 
     async function carregar() {
@@ -532,11 +548,8 @@
 
     function whatsappTodos() {
       var disponiveis = convitesCache.filter(function(c){return c.status === 'disponivel';});
-      var msg = 'JIMMY\'S Bar 🇺🇸🔥\n\n' + lote.nome + '\n📅 ' + fmtData(lote.data_evento) + '\n\n';
-      msg += 'Cada link é único e individual. Distribua entre os convidados:\n\n';
-      msg += disponiveis.map(function(c){ return c.numero_convite + '. ' + urlConvite(c.token); }).join('\n\n');
-      msg += '\n\nJimmy\'s Bar · Londrina PR';
-      window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+      if (disponiveis.length === 0) { toast('Sem convites disponíveis', 'error'); return; }
+      window.open('https://wa.me/?text=' + encodeURIComponent(msgListaConvites(disponiveis)), '_blank');
     }
 
     async function cancelarConvite(id) {
