@@ -134,17 +134,22 @@
       return window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'cadastro.html?token=' + token;
     }
 
+    function urlBilhete(token) {
+      return window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'bilhete.html?token=' + token;
+    }
+
     function msgConvidado(token) {
       return 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
-             'Você está convidado(a)! 🍻\n\n' +
-             '🎟️ Confirme sua presença no link:\n' + urlConvite(token) + '\n\n' +
+             'Olá! Você está convidado(a)! 🍻\n\n' +
              '📅 Data: ' + fmtData(lote.data_evento) + '\n' +
              (lote.eventos ? '🎤 Evento: ' + lote.eventos.nome + '\n' : '') +
              '\n' +
-             'Após confirmar, você receberá seu bilhete digital.\n\n' +
-             'Te esperamos!\n' +
+             '🎟️ Confirme sua presença no link abaixo:\n' + urlConvite(token) + '\n\n' +
+             'Após confirmar, você receberá seu bilhete digital com QR code.\n\n' +
+             'Te esperamos!\n\n' +
              'Jimmy\'s Bar · Londrina PR\n' +
-             '📞 43 98412-9883 · 📍 @jimmys.londrina';
+             '📞 43 98412-9883\n' +
+             '📍 @jimmys.londrina';
     }
 
     async function buscarLote() {
@@ -284,16 +289,19 @@
           tel = fmtTelefone(c.reservas.clientes.telefone);
           qtd = c.reservas.qtd_pessoas;
         }
+        var checkinTxt = c.checkin_em ? ' · 🚪 check-in ' + fmtDataHora(c.checkin_em) : '';
         var statusInfo = c.status === 'disponivel'
           ? '<div class="convite-status-line">⚪ Disponível</div><div class="convite-meta">' + escapeHtml(urlConvite(c.token)) + '</div>'
           : c.status === 'usado'
-            ? '<div class="convite-status-line">✓ ' + escapeHtml(nome) + (qtd ? ' · ' + qtd + 'p' : '') + '</div><div class="convite-meta">' + (tel ? '📞 ' + tel : '') + ' · confirmado em ' + fmtDataHora(c.usado_em) + '</div>'
+            ? '<div class="convite-status-line">✓ ' + escapeHtml(nome) + (qtd ? ' · ' + qtd + 'p' : '') + '</div><div class="convite-meta">' + (tel ? '📞 ' + tel : '') + ' · confirmado em ' + fmtDataHora(c.usado_em) + checkinTxt + '</div>'
             : '<div class="convite-status-line">✗ Cancelado</div>';
 
         var acoesHtml = '';
         if (c.status === 'disponivel') {
           acoesHtml = '<button type="button" class="btn btn-gold btn-sm" data-copy="' + c.token + '">📋</button>' +
                       '<button type="button" class="btn btn-secondary btn-sm" data-wa="' + c.token + '">💬</button>';
+        } else if (c.status === 'usado') {
+          acoesHtml = '<a href="' + urlBilhete(c.token) + '" target="_blank" class="btn btn-secondary btn-sm" title="Ver bilhete">🎫</a>';
         }
 
         listaHtml += '<div class="convite-card ' + c.status + '">' +
