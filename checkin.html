@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Check-in · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=3">
+  <link rel="stylesheet" href="assets/styles.css?v=4">
   <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script>
@@ -76,6 +76,11 @@
     .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
     .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
 
+    .busca-input-wrap { display: flex; gap: 6px; }
+    .busca-input-wrap input { flex: 1; }
+    .busca-acoes { display: flex; gap: 8px; margin-bottom: var(--space-md); }
+    .busca-acoes .btn { flex: 1; }
+
     .search-result { background: var(--bg-tertiary); border: 1px solid var(--border-default); border-left: 3px solid #555; border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: 8px; cursor: pointer; transition: all 0.15s; }
     .search-result:active { transform: scale(0.98); }
     .search-result.usado { border-left-color: var(--color-gold); }
@@ -89,6 +94,9 @@
     .search-result-status.checkin { background: rgba(179,89,0,0.3); color: #ffaa44; }
     .search-result-status.cancelado { background: rgba(192,57,43,0.3); color: #ff6b6b; }
     .search-empty { text-align: center; padding: var(--space-xl); color: var(--text-muted); }
+
+    .footer-info { text-align: center; padding: var(--space-md); color: var(--text-muted); font-size: 0.75rem; max-width: 480px; margin: var(--space-md) auto 0; }
+    .footer-info strong { color: var(--color-gold); }
   </style>
 </head>
 <body>
@@ -105,6 +113,10 @@
         <div class="form-group"><label class="form-label">Login</label><input type="text" id="l-login" class="form-input" placeholder="seu_login" autocomplete="off" autocapitalize="off"></div>
         <div class="form-group"><label class="form-label">Senha</label><input type="password" id="l-senha" class="form-input" placeholder="******" autocomplete="off"></div>
         <button type="button" class="btn btn-primary btn-block" id="btn-entrar">Entrar</button>
+      </div>
+      <div class="footer-info">
+        Problemas pra entrar? Chama o gerente.<br>
+        📞 <strong>Jimmy's Bar · 43 98412-9883</strong> · 📍 @jimmys.londrina
       </div>
     </div>
   </div>
@@ -137,6 +149,9 @@
         <div class="scanner-stat"><div class="scanner-stat-v" id="st-ok">0</div><div class="scanner-stat-l">Liberados</div></div>
         <div class="scanner-stat"><div class="scanner-stat-v" id="st-bloq">0</div><div class="scanner-stat-l">Bloqueados</div></div>
       </div>
+      <div class="footer-info">
+        Suporte: 📞 <strong>43 98412-9883</strong> · 📍 @jimmys.londrina
+      </div>
     </div>
   </div>
 
@@ -155,14 +170,22 @@
   <div class="modal-backdrop" id="modal-buscar">
     <div class="modal-box">
       <div class="modal-header"><div class="modal-title">🔍 Buscar Convidado</div><button type="button" class="close-btn" id="btn-fechar-buscar">✕</button></div>
-      <div class="form-group"><label class="form-label">Nome ou CPF</label><input type="text" id="b-termo" class="form-input" placeholder="Ex: João Silva ou 123.456.789-00" autocomplete="off"></div>
-      <button type="button" class="btn btn-primary btn-block" id="btn-fazer-busca" style="margin-bottom:var(--space-md);">🔍 Buscar</button>
+      <div class="form-group">
+        <label class="form-label">Nome ou CPF</label>
+        <div class="busca-input-wrap">
+          <input type="text" id="b-termo" class="form-input" placeholder="Ex: João Silva ou 123.456.789-00" autocomplete="off">
+          <button type="button" class="btn btn-ghost" id="btn-limpar-busca" title="Limpar">🔄</button>
+        </div>
+      </div>
+      <div class="busca-acoes">
+        <button type="button" class="btn btn-primary" id="btn-fazer-busca">🔍 Buscar</button>
+      </div>
       <div id="busca-resultados"></div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=3"></script>
+  <script src="assets/supabase.js?v=4"></script>
   <script>
 (function(){
   try {
@@ -216,17 +239,13 @@
       });
     }
 
-    // ---- SCANNER + CÂMERA ----
     async function iniciarScanner() {
       if (!window.Html5Qrcode) { toast('Lib QR não carregou. Recarrega.', 'error'); return; }
       try {
         cameras = await Html5Qrcode.getCameras();
         if (!cameras || cameras.length === 0) { toast('Nenhuma câmera encontrada', 'error'); return; }
-
-        // Procura câmera traseira
         var idx = cameras.findIndex(function(c){ return /back|rear|environment|traseira/i.test(c.label); });
         camIdx = idx >= 0 ? idx : 0;
-
         scanner = new Html5Qrcode('qr-reader');
         await scanner.start(
           cameras[camIdx].id,
@@ -239,8 +258,6 @@
           },
           function(){}
         );
-
-        // Habilita botões
         document.getElementById('btn-flip').disabled = cameras.length < 2;
         verificarFlash();
       } catch(err) {
@@ -286,11 +303,7 @@
     function verificarFlash() {
       try {
         var caps = scanner.getRunningTrackCapabilities();
-        if (caps && caps.torch) {
-          document.getElementById('btn-flash').disabled = false;
-        } else {
-          document.getElementById('btn-flash').disabled = true;
-        }
+        document.getElementById('btn-flash').disabled = !(caps && caps.torch);
       } catch(e) {
         document.getElementById('btn-flash').disabled = true;
       }
@@ -313,7 +326,6 @@
       try { if (scanner) scanner.resume(); } catch(e){}
     }
 
-    // ---- VALIDAÇÃO ----
     async function validarToken(token) {
       try {
         var resp = await sb.from('convites')
@@ -328,16 +340,13 @@
     function processarConvite(c) {
       if (c.status === 'cancelado') { mostrarErro('✗', 'CANCELADO', 'Esse bilhete foi cancelado.'); return; }
       if (!c.reserva_id || !c.reservas) { mostrarErro('✗', 'NÃO CONFIRMADO', 'Esse convite nunca foi cadastrado.'); return; }
-
       var lote = c.lotes || {};
       var ev = lote.eventos || {};
       var dataEvento = ev.data || lote.data_evento;
       var bilheteDias = Math.max(lote.bilhete_dias_antes || 0, ev.bilhete_dias_antes || 0);
       var diasRestantes = diasEntre(dataEvento);
-
       if (bilheteDias > 0 && diasRestantes > bilheteDias) {
-        var diasFalta = diasRestantes - bilheteDias;
-        mostrarAviso('⏰', 'AINDA NÃO LIBERADO', 'Falta(m) ' + diasFalta + ' dia(s).', c);
+        mostrarAviso('⏰', 'AINDA NÃO LIBERADO', 'Falta(m) ' + (diasRestantes - bilheteDias) + ' dia(s).', c);
         return;
       }
       if (c.checkin_em) { mostrarJaUsado(c); return; }
@@ -427,7 +436,6 @@
       document.getElementById('st-bloq').textContent = statsBloq;
     }
 
-    // ---- MANUAL ----
     function abrirManual() {
       document.getElementById('m-token').value = '';
       document.getElementById('modal-manual').classList.add('active');
@@ -443,14 +451,16 @@
       validarToken(token);
     }
 
-    // ---- BUSCAR ----
     function abrirBuscar() {
-      document.getElementById('b-termo').value = '';
-      document.getElementById('busca-resultados').innerHTML = '';
+      limparBusca();
       document.getElementById('modal-buscar').classList.add('active');
       setTimeout(function(){ document.getElementById('b-termo').focus(); }, 100);
     }
     function fecharBuscar() { document.getElementById('modal-buscar').classList.remove('active'); }
+    function limparBusca() {
+      document.getElementById('b-termo').value = '';
+      document.getElementById('busca-resultados').innerHTML = '';
+    }
 
     async function fazerBusca() {
       var termo = document.getElementById('b-termo').value.trim();
@@ -459,11 +469,9 @@
       resultEl.innerHTML = '<div class="search-empty"><div class="spinner" style="margin:0 auto;"></div></div>';
 
       try {
-        // Detecta CPF (só números, 11 dígitos)
         var soNum = termo.replace(/\D/g, '');
         var ehCPF = soNum.length === 11;
 
-        // 1. Busca clientes
         var qC = sb.from('clientes').select('id, nome_completo, telefone, cpf').eq('tenant_id', TENANT_ID).limit(20);
         if (ehCPF) qC = qC.eq('cpf', soNum);
         else qC = qC.ilike('nome_completo', '%' + termo + '%');
@@ -475,7 +483,6 @@
         rC.data.forEach(function(c){ clientesMap[c.id] = c; });
         var ids = rC.data.map(function(c){ return c.id; });
 
-        // 2. Busca reservas confirmadas
         var rR = await sb.from('reservas').select('id, qtd_pessoas, cliente_id, status').in('cliente_id', ids).eq('status', 'confirmada');
         if (rR.error) throw new Error(rR.error.message);
         if (!rR.data || rR.data.length === 0) { resultEl.innerHTML = '<div class="search-empty">Cliente encontrado, mas sem reserva confirmada.</div>'; return; }
@@ -484,12 +491,10 @@
         rR.data.forEach(function(r){ reservasMap[r.id] = r; });
         var rIds = rR.data.map(function(r){ return r.id; });
 
-        // 3. Busca convites
         var rCV = await sb.from('convites').select('*, lotes(nome, data_evento, bilhete_dias_antes, eventos(nome, data, bilhete_dias_antes))').in('reserva_id', rIds);
         if (rCV.error) throw new Error(rCV.error.message);
         if (!rCV.data || rCV.data.length === 0) { resultEl.innerHTML = '<div class="search-empty">Sem convites vinculados.</div>'; return; }
 
-        // Renderiza
         var html = '';
         rCV.data.forEach(function(conv){
           var res = reservasMap[conv.reserva_id];
@@ -526,7 +531,6 @@
       }
     }
 
-    // ---- INIT ----
     var saved = sessionStorage.getItem(sessionKey);
     if (saved) { try { validador = JSON.parse(saved); mostrarScanner(); } catch(e) { mostrarLogin(); } }
     else mostrarLogin();
@@ -543,6 +547,7 @@
     document.getElementById('m-token').addEventListener('keypress', function(e){ if (e.key === 'Enter') validarManual(); });
     document.getElementById('btn-fechar-buscar').addEventListener('click', fecharBuscar);
     document.getElementById('btn-fazer-busca').addEventListener('click', fazerBusca);
+    document.getElementById('btn-limpar-busca').addEventListener('click', limparBusca);
     document.getElementById('b-termo').addEventListener('keypress', function(e){ if (e.key === 'Enter') fazerBusca(); });
     document.getElementById('modal-manual').addEventListener('click', function(e){ if (e.target === document.getElementById('modal-manual')) fecharManual(); });
     document.getElementById('modal-buscar').addEventListener('click', function(e){ if (e.target === document.getElementById('modal-buscar')) fecharBuscar(); });
