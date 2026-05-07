@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Validadores · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=3">
+  <link rel="stylesheet" href="assets/styles.css?v=4">
   <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
   <script>
     window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
@@ -38,6 +38,8 @@
     .credencial-label { font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.08em; margin-bottom: 4px; }
     .credencial-valor { font-family: monospace; color: var(--color-cream); font-size: 1rem; word-break: break-all; }
     .credencial-valor.senha { font-size: 1.5rem; letter-spacing: 0.15em; color: var(--color-gold); }
+    .footer-info { text-align: center; padding: var(--space-lg) 0 var(--space-2xl); color: var(--text-muted); font-size: 0.8125rem; }
+    .footer-info strong { color: var(--color-gold); }
   </style>
 </head>
 <body>
@@ -71,6 +73,10 @@
     <div id="lista-validadores"></div>
   </main>
 
+  <div class="footer-info">
+    📞 <strong>Jimmy's Bar · 43 98412-9883</strong> · 📍 @jimmys.londrina
+  </div>
+
   <div class="modal-backdrop" id="modal-v">
     <div class="modal-box">
       <div class="modal-header"><div class="modal-title" id="mv-titulo">Validador</div><button type="button" class="close-btn" id="btn-fechar">✕</button></div>
@@ -79,7 +85,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=3"></script>
+  <script src="assets/supabase.js?v=4"></script>
   <script>
 (function(){
   try {
@@ -114,7 +120,8 @@
              'No celular, abra o link e faça login.\n' +
              'Aponte a câmera pro QR code do bilhete pra liberar a entrada.\n\n' +
              'Jimmy\'s Bar · Londrina PR\n' +
-             '📞 43 98412-9883';
+             '📞 43 98412-9883\n' +
+             '📍 @jimmys.londrina';
     }
 
     async function carregar() {
@@ -198,7 +205,6 @@
         document.getElementById('btn-mv-del').addEventListener('click', deletar);
       }
 
-      // Auto-fill login do nome
       if (!id) {
         document.getElementById('mv-nome').addEventListener('input', function(){
           var login = this.value.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,20);
