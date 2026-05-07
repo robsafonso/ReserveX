@@ -33,6 +33,13 @@
     .footer-info { text-align: center; padding: var(--space-lg) 0; color: var(--text-muted); font-size: 0.8125rem; }
     .footer-info strong { color: var(--color-gold); }
     .step-title { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.05em; color: var(--color-gold); margin-bottom: var(--space-md); padding-bottom: 8px; border-bottom: 1px solid var(--border-default); text-transform: uppercase; }
+    .bilhete-aviso-pre { background: rgba(201,151,60,0.1); border: 1px dashed var(--color-gold); border-radius: var(--radius-md); padding: 12px; margin-top: var(--space-md); margin-bottom: var(--space-md); font-size: 0.8125rem; color: var(--color-cream); text-align: center; line-height: 1.4; }
+    .bilhete-success { background: linear-gradient(135deg, rgba(201,151,60,0.18), rgba(200,16,46,0.12)); border: 1px solid var(--color-gold); border-radius: var(--radius-md); padding: var(--space-lg); margin-bottom: var(--space-md); text-align: center; }
+    .bilhete-success-titulo { font-family: var(--font-display); color: var(--color-gold); font-size: 1.125rem; margin-bottom: 8px; letter-spacing: 0.05em; }
+    .bilhete-success-sub { font-size: 0.875rem; color: var(--color-cream); margin-bottom: var(--space-md); line-height: 1.4; }
+    .bilhete-link-box { background: rgba(0,0,0,0.3); border: 1px dashed var(--color-gold); border-radius: var(--radius-sm); padding: 10px; }
+    .bilhete-link-l { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 4px; }
+    .bilhete-link-v { word-break: break-all; color: var(--color-gold); font-size: 0.6875rem; font-family: monospace; }
   </style>
 </head>
 <body>
@@ -62,6 +69,7 @@
       <div class="estado-titulo" id="sucesso-titulo">Reserva Confirmada!</div>
       <div class="estado-sub" id="sucesso-msg"></div>
       <div class="info-card" id="sucesso-info"></div>
+      <div id="sucesso-bilhete"></div>
       <a href="https://wa.me/5543984129883" class="btn btn-secondary btn-block" target="_blank">💬 Falar com o Jimmy's</a>
       <p style="font-size:0.8125rem;color:var(--text-muted);margin-top:var(--space-md);text-align:center;">Te esperamos! 🇺🇸🔥</p>
     </div>
@@ -89,6 +97,10 @@
     function fmtCpf(cpf){if(!cpf)return ''; var d=cpf.replace(/\D/g,''); if(d.length!==11)return cpf; return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);}
     function aplicarMascaraCPF(input){input.addEventListener('input',function(){var v=input.value.replace(/\D/g,'').slice(0,11);if(v.length>9)v=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6,9)+'-'+v.slice(9);else if(v.length>6)v=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6);else if(v.length>3)v=v.slice(0,3)+'.'+v.slice(3);input.value=v;});}
     function aplicarMascaraTel(input){input.addEventListener('input',function(){var v=input.value.replace(/\D/g,'').slice(0,11);if(v.length>6)v='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);else if(v.length>2)v='('+v.slice(0,2)+') '+v.slice(2);else if(v.length>0)v='('+v;input.value=v;});}
+
+    function urlBilhete() {
+      return window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'bilhete.html?token=' + token;
+    }
 
     function mostrarInvalido(msg) {
       document.getElementById('loading').style.display = 'none';
@@ -126,7 +138,20 @@
 
         var c = resC.data;
         if (c.status === 'cancelado') { mostrarInvalido('Esse convite foi cancelado.'); return; }
-        if (c.status === 'usado') { mostrarInvalido('Esse convite já foi usado.'); return; }
+        if (c.status === 'usado') {
+          // Convite já usado - oferece link do bilhete
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('invalido').style.display = '';
+          document.getElementById('invalido').querySelector('.estado-icon').textContent = '🎫';
+          document.getElementById('invalido').querySelector('.estado-titulo').textContent = 'Já confirmado!';
+          document.getElementById('invalido-msg').innerHTML = 'Esse convite já foi confirmado.<br>Use o link do seu bilhete:';
+          var btn = document.getElementById('invalido').querySelector('.btn');
+          btn.href = urlBilhete();
+          btn.target = '_self';
+          btn.textContent = '🎫 Ver meu bilhete digital';
+          btn.className = 'btn btn-gold btn-block';
+          return;
+        }
 
         if (!c.lote_id) { mostrarInvalido('Convite sem lote vinculado.'); return; }
         var resL = await sb.from('lotes').select('*').eq('id', c.lote_id).maybeSingle();
@@ -175,6 +200,11 @@
         '</div>';
       }
 
+      var avisoBilhete = '';
+      if (modo === 'convite') {
+        avisoBilhete = '<div class="bilhete-aviso-pre">🎫 Após confirmar, você receberá seu <strong style="color:var(--color-gold);">bilhete digital com QR code</strong> pra apresentar na portaria.</div>';
+      }
+
       container.innerHTML =
         '<div class="info-card">' +
           infoLote +
@@ -191,6 +221,8 @@
         '<div class="form-group"><label class="form-label">Instagram</label><input type="text" id="f-ig" class="form-input" value="' + escapeHtml(clienteExistente && clienteExistente.instagram ? clienteExistente.instagram : '') + '" placeholder="@seuusuario"></div>' +
 
         (modo === 'reserva' ? '<div class="form-group"><label class="form-label">Observações</label><textarea id="f-obs" class="form-textarea" placeholder="Aniversário, alergias, mesa de canto..."></textarea></div>' : '') +
+
+        avisoBilhete +
 
         '<button type="button" class="btn btn-primary btn-block" id="btn-confirmar" style="margin-top:var(--space-md);">' + (modo === 'convite' ? '🎟️ Confirmar Presença' : '✓ Confirmar Reserva') + '</button>';
 
@@ -306,13 +338,29 @@
       document.getElementById('form-container').style.display = 'none';
       document.getElementById('sucesso').style.display = '';
       var dataEvento = modo === 'reserva' ? dados.data : loteInfo.data_evento;
-      var msg = nome.split(' ')[0] + (modo === 'convite' ? ', sua presença tá confirmada!' : ', sua reserva tá confirmada!');
+      var msg = nome.split(' ')[0] + (modo === 'convite' ? ', sua presença tá confirmada! 🍻' : ', sua reserva tá confirmada!');
       document.getElementById('sucesso-msg').textContent = msg;
+
       var info = '<div class="info-row"><span class="info-l">📅 Data</span><span class="info-v">' + fmtData(dataEvento) + '</span></div>';
       if (modo === 'reserva') info += '<div class="info-row"><span class="info-l">👥 Pessoas</span><span class="info-v">' + qtd + '</span></div>';
       if (eventoInfo) info += '<div class="info-row"><span class="info-l">🎤 Evento</span><span class="info-v">' + escapeHtml(eventoInfo.nome) + '</span></div>';
       if (modo === 'convite') info += '<div class="info-row"><span class="info-l">🎟️ Convite</span><span class="info-v">#' + dados.numero_convite + '</span></div>';
       document.getElementById('sucesso-info').innerHTML = info;
+
+      // Bilhete digital pra convites
+      if (modo === 'convite') {
+        var url = urlBilhete();
+        document.getElementById('sucesso-bilhete').innerHTML =
+          '<div class="bilhete-success">' +
+            '<div class="bilhete-success-titulo">🎫 SEU BILHETE DIGITAL</div>' +
+            '<div class="bilhete-success-sub">Apresente esse bilhete na portaria pra entrar.<br>QR code único e pessoal.</div>' +
+            '<a href="' + url + '" class="btn btn-gold btn-block" style="font-size:1rem;padding:14px;margin-bottom:var(--space-md);">🎫 Ver meu bilhete agora</a>' +
+            '<div class="bilhete-link-box">' +
+              '<div class="bilhete-link-l">📌 Salve esse link — você vai precisar</div>' +
+              '<div class="bilhete-link-v">' + url + '</div>' +
+            '</div>' +
+          '</div>';
+      }
     }
 
     validarToken();
