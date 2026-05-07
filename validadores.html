@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Validadores · ReserveX · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=3">
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+  <script>
+    window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
+    window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
+  </script>
+  <style>
+    .stats-row { display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); flex-wrap: wrap; }
+    .stat-pill { flex: 1; min-width: 90px; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 10px; text-align: center; }
+    .stat-pill-v { font-family: var(--font-display); font-size: 1.5rem; line-height: 1; color: var(--color-cream); }
+    .stat-pill-l { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-bottom: var(--space-lg); align-items: center; }
+    .v-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: 8px; display: flex; gap: var(--space-md); align-items: center; }
+    .v-card.ativo { border-left: 3px solid var(--color-green); }
+    .v-card.inativo { border-left: 3px solid #555; opacity: 0.65; }
+    .v-icon { font-size: 1.75rem; width: 44px; text-align: center; }
+    .v-info { flex: 1; min-width: 0; }
+    .v-nome { font-family: var(--font-display); color: var(--color-cream); font-size: 1.0625rem; }
+    .v-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-family: monospace; }
+    .v-acoes { display: flex; flex-direction: column; gap: 4px; }
+    .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+    .modal-backdrop.active { display: flex; }
+    .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-default); }
+    .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
+    .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
+    .empty { text-align: center; padding: var(--space-2xl) var(--space-md); color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.4; }
+    .senha-input-wrap { display: flex; gap: 6px; }
+    .senha-input-wrap input { flex: 1; font-family: monospace; letter-spacing: 0.1em; font-size: 1.0625rem; }
+    .credencial-box { background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: 8px; }
+    .credencial-label { font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.08em; margin-bottom: 4px; }
+    .credencial-valor { font-family: monospace; color: var(--color-cream); font-size: 1rem; word-break: break-all; }
+    .credencial-valor.senha { font-size: 1.5rem; letter-spacing: 0.15em; color: var(--color-gold); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="home.html" class="brand">
+        <div class="brand-logo">JIMMY<strong>'S</strong></div>
+        <span class="brand-badge">v1.1</span>
+      </a>
+      <div class="user-menu">
+        <a href="home.html" class="btn btn-ghost btn-sm">← Voltar</a>
+      </div>
+    </div>
+  </header>
+  <main class="container fade-in">
+    <h1 style="font-family: var(--font-display); margin-bottom: var(--space-sm);">👮 Validadores</h1>
+    <p class="text-secondary" style="margin-bottom: var(--space-lg);">Equipe da portaria que vai escanear os bilhetes.</p>
+
+    <div class="stats-row">
+      <div class="stat-pill"><div class="stat-pill-v" id="s-total">—</div><div class="stat-pill-l">Total</div></div>
+      <div class="stat-pill"><div class="stat-pill-v" id="s-ativ">—</div><div class="stat-pill-l">Ativos</div></div>
+      <div class="stat-pill"><div class="stat-pill-v" id="s-inat">—</div><div class="stat-pill-l">Inativos</div></div>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" id="btn-novo">+ Novo Validador</button>
+      <a href="checkin.html" class="btn btn-gold" target="_blank">🚪 Abrir Check-in</a>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻</button>
+    </div>
+
+    <div id="lista-validadores"></div>
+  </main>
+
+  <div class="modal-backdrop" id="modal-v">
+    <div class="modal-box">
+      <div class="modal-header"><div class="modal-title" id="mv-titulo">Validador</div><button type="button" class="close-btn" id="btn-fechar">✕</button></div>
+      <div id="mv-body"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=3"></script>
+  <script>
+(function(){
+  try {
+    var admin = exigirLogin();
+    if (!admin) return;
+
+    var BCRYPT = (window.dcodeIO && window.dcodeIO.bcrypt) || window.bcrypt;
+    var validadoresCache = [];
+    var editando = null;
+    var modal = document.getElementById('modal-v');
+
+    function escapeHtml(s){if(s==null)return '';return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+    function gerarSenha() {
+      var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      var s = '';
+      for (var i = 0; i < 6; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+      return s;
+    }
+
+    function urlCheckin() {
+      return window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'checkin.html';
+    }
+
+    function msgValidador(nome, login, senha) {
+      return 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
+             'Olá ' + nome + '!\n\n' +
+             'Você foi cadastrado(a) como VALIDADOR(a) da portaria.\n\n' +
+             '🔗 Acesso ao check-in:\n' + urlCheckin() + '\n\n' +
+             '👤 Login: ' + login + '\n' +
+             '🔑 Senha: ' + senha + '\n\n' +
+             'No celular, abra o link e faça login.\n' +
+             'Aponte a câmera pro QR code do bilhete pra liberar a entrada.\n\n' +
+             'Jimmy\'s Bar · Londrina PR\n' +
+             '📞 43 98412-9883';
+    }
+
+    async function carregar() {
+      try {
+        var resp = await sb.from('validadores').select('*').eq('tenant_id', TENANT_ID).order('created_at', { ascending: false });
+        if (resp.error) throw new Error(resp.error.message);
+        validadoresCache = resp.data || [];
+        atualizarStats();
+        renderizar();
+      } catch(err) { alert('Erro: ' + err.message); }
+    }
+
+    function atualizarStats() {
+      var ativos = validadoresCache.filter(function(v){return v.ativo;}).length;
+      document.getElementById('s-total').textContent = validadoresCache.length;
+      document.getElementById('s-ativ').textContent = ativos;
+      document.getElementById('s-inat').textContent = validadoresCache.length - ativos;
+    }
+
+    function renderizar() {
+      var el = document.getElementById('lista-validadores');
+      if (validadoresCache.length === 0) {
+        el.innerHTML = '<div class="empty"><div class="empty-icon">👮</div><p>Nenhum validador cadastrado.</p><p style="font-size:0.875rem;margin-top:8px;">Toca em "+ Novo Validador" pra cadastrar a portaria.</p></div>';
+        return;
+      }
+
+      var html = '';
+      validadoresCache.forEach(function(v){
+        var cls = v.ativo ? 'ativo' : 'inativo';
+        var ultimo = v.ultimo_acesso ? '🕐 ' + fmtDataHora(v.ultimo_acesso) : '— sem acessos';
+        html += '<div class="v-card ' + cls + '">' +
+          '<div class="v-icon">' + (v.ativo ? '👮' : '🚫') + '</div>' +
+          '<div class="v-info">' +
+            '<div class="v-nome">' + escapeHtml(v.nome) + '</div>' +
+            '<div class="v-meta">@' + escapeHtml(v.login) + ' · ' + ultimo + '</div>' +
+          '</div>' +
+          '<div class="v-acoes">' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-edit="' + v.id + '">✏️</button>' +
+          '</div>' +
+        '</div>';
+      });
+      el.innerHTML = html;
+
+      Array.prototype.forEach.call(el.querySelectorAll('button[data-edit]'), function(b){
+        b.addEventListener('click', function(){ abrirModal(b.dataset.edit); });
+      });
+    }
+
+    function abrirModal(id) {
+      editando = id ? validadoresCache.find(function(v){return v.id === id;}) : null;
+      var v = editando || {};
+      document.getElementById('mv-titulo').textContent = id ? 'Editar Validador' : 'Novo Validador';
+
+      var senhaPlaceholder = id ? '(deixe vazio pra manter)' : 'Auto-gerada';
+      var senhaAuto = id ? '' : gerarSenha();
+
+      document.getElementById('mv-body').innerHTML =
+        '<div class="form-group"><label class="form-label">Nome *</label><input type="text" id="mv-nome" class="form-input" value="' + escapeHtml(v.nome || '') + '" placeholder="Ex: Bruno Portaria"></div>' +
+        '<div class="form-group"><label class="form-label">Login *</label><input type="text" id="mv-login" class="form-input" value="' + escapeHtml(v.login || '') + '" placeholder="bruno"></div>' +
+        '<div class="form-group"><label class="form-label">' + (id ? '🔁 Nova senha' : '🔑 Senha') + '</label>' +
+          '<div class="senha-input-wrap">' +
+            '<input type="text" id="mv-senha" class="form-input" value="' + senhaAuto + '" placeholder="' + senhaPlaceholder + '">' +
+            '<button type="button" class="btn btn-ghost" id="btn-mv-gerar">🎲</button>' +
+          '</div>' +
+        '</div>' +
+        (id ? '<div class="form-group"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="mv-ativo" ' + (v.ativo ? 'checked' : '') + '> <span class="form-label" style="margin:0;">Ativo (pode fazer login)</span></label></div>' : '') +
+        '<div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);flex-wrap:wrap;">' +
+          '<button type="button" class="btn btn-primary" id="btn-mv-salvar" style="flex:1;">' + (id ? '✓ Salvar' : '✓ Cadastrar') + '</button>' +
+          (id ? '<button type="button" class="btn btn-danger" id="btn-mv-del">🗑️</button>' : '') +
+          '<button type="button" class="btn btn-ghost" id="btn-mv-cancel">Cancelar</button>' +
+        '</div>';
+
+      modal.classList.add('active');
+
+      document.getElementById('btn-mv-gerar').addEventListener('click', function(){
+        document.getElementById('mv-senha').value = gerarSenha();
+      });
+      document.getElementById('btn-mv-cancel').addEventListener('click', fecharModal);
+      document.getElementById('btn-mv-salvar').addEventListener('click', salvar);
+      if (id) {
+        document.getElementById('btn-mv-del').addEventListener('click', deletar);
+      }
+
+      // Auto-fill login do nome
+      if (!id) {
+        document.getElementById('mv-nome').addEventListener('input', function(){
+          var login = this.value.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,20);
+          document.getElementById('mv-login').value = login;
+        });
+      }
+    }
+
+    function fecharModal() {
+      modal.classList.remove('active');
+      editando = null;
+    }
+
+    async function salvar() {
+      try {
+        var nome = document.getElementById('mv-nome').value.trim();
+        var login = document.getElementById('mv-login').value.trim().toLowerCase();
+        var senha = document.getElementById('mv-senha').value.trim();
+        var ativoEl = document.getElementById('mv-ativo');
+        var ativo = ativoEl ? ativoEl.checked : true;
+
+        if (!nome) { toast('Nome obrigatório', 'error'); return; }
+        if (!login || login.length < 3) { toast('Login mínimo 3 caracteres', 'error'); return; }
+        if (!editando && (!senha || senha.length < 4)) { toast('Senha mínima 4 caracteres', 'error'); return; }
+        if (senha && senha.length < 4) { toast('Senha mínima 4 caracteres', 'error'); return; }
+        if (!BCRYPT) { toast('bcrypt não carregou. Recarrega.', 'error'); return; }
+
+        var dados = { nome: nome, login: login, ativo: ativo, updated_at: new Date().toISOString() };
+        if (senha) dados.senha_hash = BCRYPT.hashSync(senha, 10);
+
+        var resp;
+        if (editando) {
+          resp = await sb.from('validadores').update(dados).eq('id', editando.id);
+        } else {
+          dados.tenant_id = TENANT_ID;
+          resp = await sb.from('validadores').insert(dados);
+        }
+
+        if (resp.error) {
+          if (resp.error.code === '23505') { toast('Esse login já existe', 'error'); return; }
+          throw new Error(resp.error.message);
+        }
+
+        toast(editando ? 'Validador atualizado ✓' : 'Validador cadastrado ✓', 'success');
+        fecharModal();
+
+        if (!editando && senha) mostrarCredenciais(nome, login, senha);
+        else if (editando && senha) mostrarCredenciais(nome, login, senha);
+        else carregar();
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
+    function mostrarCredenciais(nome, login, senha) {
+      var msg = msgValidador(nome, login, senha);
+      document.getElementById('mv-titulo').textContent = '🔑 Credenciais Geradas';
+      document.getElementById('mv-body').innerHTML =
+        '<div class="alert alert-success" style="margin-bottom:var(--space-md);">⚠ Anota essas credenciais agora! Depois de fechar, vira hash e só dá pra resetar de novo.</div>' +
+        '<div class="credencial-box">' +
+          '<div class="credencial-label">Nome</div>' +
+          '<div class="credencial-valor">👮 ' + escapeHtml(nome) + '</div>' +
+        '</div>' +
+        '<div class="credencial-box">' +
+          '<div class="credencial-label">Login</div>' +
+          '<div class="credencial-valor">@' + escapeHtml(login) + '</div>' +
+        '</div>' +
+        '<div class="credencial-box">' +
+          '<div class="credencial-label">Senha</div>' +
+          '<div class="credencial-valor senha">' + escapeHtml(senha) + '</div>' +
+        '</div>' +
+        '<div class="credencial-box">' +
+          '<div class="credencial-label">Link de check-in</div>' +
+          '<div class="credencial-valor" style="font-size:0.75rem;">' + escapeHtml(urlCheckin()) + '</div>' +
+        '</div>' +
+        '<button type="button" class="btn btn-secondary btn-block" id="btn-wa-cred" style="margin-bottom:8px;">💬 Mandar credenciais no WhatsApp</button>' +
+        '<button type="button" class="btn btn-gold btn-block" id="btn-copy-cred" style="margin-bottom:8px;">📋 Copiar credenciais</button>' +
+        '<button type="button" class="btn btn-primary btn-block" id="btn-fech-cred">✓ OK, anotei</button>';
+
+      modal.classList.add('active');
+
+      document.getElementById('btn-wa-cred').addEventListener('click', function(){
+        window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+      });
+      document.getElementById('btn-copy-cred').addEventListener('click', function(){
+        copiarTexto(msg, this);
+      });
+      document.getElementById('btn-fech-cred').addEventListener('click', function(){
+        fecharModal();
+        carregar();
+      });
+    }
+
+    async function deletar() {
+      if (!editando) return;
+      if (!confirm('Deletar validador "' + editando.nome + '"?\nO histórico de check-ins permanece.')) return;
+      var resp = await sb.from('validadores').delete().eq('id', editando.id);
+      if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+      toast('Validador deletado', 'success');
+      fecharModal();
+      carregar();
+    }
+
+    document.getElementById('btn-novo').addEventListener('click', function(){ abrirModal(); });
+    document.getElementById('btn-refresh').addEventListener('click', carregar);
+    document.getElementById('btn-fechar').addEventListener('click', fecharModal);
+    modal.addEventListener('click', function(e){ if (e.target === modal) fecharModal(); });
+
+    carregar();
+  } catch(err) { alert('Erro fatal: ' + err.message); }
+})();
+  </script>
+</body>
+</html>
