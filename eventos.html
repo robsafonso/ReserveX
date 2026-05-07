@@ -265,11 +265,20 @@
         };
         if (!eventoEditando) dados.criado_por = admin.id;
 
+        var dataAntiga = eventoEditando ? eventoEditando.data : null;
+
         var resp;
         if (eventoEditando) resp = await sb.from('eventos').update(dados).eq('id', eventoEditando.id);
         else resp = await sb.from('eventos').insert(dados);
 
         if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+
+        // Cascade: se editou e mudou a data, atualiza lotes vinculados
+        if (eventoEditando && dataAntiga !== data) {
+          var cascade = await sb.from('lotes').update({ data_evento: data }).eq('evento_id', eventoEditando.id);
+          if (cascade.error) { toast('Evento salvo, mas lotes não atualizaram: ' + cascade.error.message, 'error'); }
+        }
+
         toast(eventoEditando ? 'Evento atualizado ✓' : 'Evento criado ✓', 'success');
         fecharModal();
         carregar();
