@@ -177,6 +177,20 @@
              '📍 @jimmys.londrina';
     }
 
+    function msgConvidado(token) {
+      return 'JIMMY\'S Bar 🇺🇸🔥\n\n' +
+             'Olá! Você está convidado(a)! 🍻\n\n' +
+             '📅 Data: ' + fmtData(lote.data_evento) + '\n' +
+             (lote.eventos ? '🎤 Evento: ' + lote.eventos.nome + '\n' : '') +
+             '\n' +
+             '🎟️ Confirme sua presença no link abaixo:\n' + urlConvite(token) + '\n\n' +
+             'Após confirmar, você receberá seu bilhete digital com QR code.\n\n' +
+             'Te esperamos!\n\n' +
+             'Jimmy\'s Bar · Londrina PR\n' +
+             '📞 43 98412-9883\n' +
+             '📍 @jimmys.londrina';
+    }
+
     async function carregar() {
       try {
         var l = await sb.from('lotes').select('*, eventos(nome)').eq('id', loteId).eq('tenant_id', TENANT_ID).maybeSingle();
@@ -342,7 +356,7 @@
         chip.addEventListener('click', function(){ filtroAtivo = chip.dataset.filtro; renderizar(); });
       });
       Array.prototype.forEach.call(document.querySelectorAll('button[data-copy]'), function(b){
-        b.addEventListener('click', function(){ copiarTexto(urlConvite(b.dataset.copy), b); });
+        b.addEventListener('click', function(){ copiarTexto(msgConvidado(b.dataset.copy), b); });
       });
       Array.prototype.forEach.call(document.querySelectorAll('button[data-cancel]'), function(b){
         b.addEventListener('click', function(){ cancelarConvite(b.dataset.cancel); });
