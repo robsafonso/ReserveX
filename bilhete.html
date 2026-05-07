@@ -27,15 +27,12 @@
     .status-valido { background: #d4f4dd; color: #1a6b2e; }
     .status-checkin { background: #ffe5cc; color: #b35900; }
     .status-cancelado { background: #ffd6d6; color: #b30000; }
-
     .ticket-aviso { background: var(--color-gold); color: var(--color-black); padding: 14px var(--space-lg); text-align: center; }
     .ticket-aviso-titulo { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.12em; margin-bottom: 4px; }
     .ticket-aviso-texto { font-size: 0.75rem; line-height: 1.4; color: #2a2300; }
-
     .ticket-origem { background: rgba(0,0,0,0.04); padding: 12px var(--space-lg); font-size: 0.75rem; color: #555; }
     .ticket-origem-row { display: flex; justify-content: space-between; padding: 3px 0; }
     .ticket-origem-row strong { color: #2a2a2a; }
-
     .ticket-footer { padding: var(--space-md) var(--space-lg); background: var(--color-black); color: var(--color-cream); text-align: center; font-size: 0.8125rem; }
     .countdown-box { background: var(--color-gold); color: var(--color-black); padding: var(--space-xl) var(--space-lg); text-align: center; }
     .countdown-num { font-family: var(--font-display); font-size: 4rem; line-height: 1; }
@@ -81,7 +78,6 @@
       if (!tel) return '';
       var fmt = fmtTelefone(tel);
       if (fmt.length < 6) return fmt;
-      // (45) 9****-6464
       return fmt.substring(0, 6) + '****' + fmt.substring(fmt.length - 5);
     }
 
@@ -106,9 +102,8 @@
       var ev = lote.eventos || {};
       var nomeEvento = ev.nome || lote.nome || 'Evento';
       var dataEvento = ev.data || lote.data_evento;
-      var bilheteDias = (lote.bilhete_dias_antes != null && lote.bilhete_dias_antes > 0)
-        ? lote.bilhete_dias_antes
-        : (ev.bilhete_dias_antes || 0);
+      // Pega o MAIOR (mais restritivo) entre lote e evento
+      var bilheteDias = Math.max(lote.bilhete_dias_antes || 0, ev.bilhete_dias_antes || 0);
       var horaStr = '';
       if (ev.hora_inicio) {
         horaStr = ev.hora_inicio.substring(0,5);
