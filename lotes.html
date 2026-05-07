@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lotes · ReserveX · Jimmy's</title>
-  <link rel="stylesheet" href="assets/styles.css?v=3">
+  <link rel="stylesheet" href="assets/styles.css?v=4">
   <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
   <script>
     window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
@@ -45,6 +45,8 @@
     .credencial-label { font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.08em; margin-bottom: 4px; }
     .credencial-valor { font-family: monospace; color: var(--color-cream); font-size: 1.125rem; word-break: break-all; }
     .credencial-valor.senha { font-size: 1.5rem; letter-spacing: 0.15em; color: var(--color-gold); }
+    .hint-prefill { font-size: 0.75rem; color: var(--color-gold); margin-top: -8px; margin-bottom: var(--space-md); display: none; }
+    .hint-prefill.show { display: block; }
   </style>
 </head>
 <body>
@@ -93,7 +95,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase.js?v=3"></script>
+  <script src="assets/supabase.js?v=4"></script>
   <script>
 (function(){
   try {
@@ -183,10 +185,11 @@
       var preEvento = new URLSearchParams(window.location.search).get('evento') || '';
       var preData = new URLSearchParams(window.location.search).get('data') || hojeISO();
 
-      var eventosOptions = '<option value="">Sem evento (dia normal)</option>';
+      var eventosOptions = '<option value="" data-data="" data-bilhete-dias="">Sem evento (dia normal)</option>';
       eventosCache.forEach(function(e){
         var sel = (e.id === preEvento) ? ' selected' : '';
-        eventosOptions += '<option value="' + e.id + '" data-data="' + e.data + '"' + sel + '>' + escapeHtml(e.nome) + ' · ' + fmtData(e.data) + '</option>';
+        var bd = e.bilhete_dias_antes != null ? e.bilhete_dias_antes : 0;
+        eventosOptions += '<option value="' + e.id + '" data-data="' + e.data + '" data-bilhete-dias="' + bd + '"' + sel + '>' + escapeHtml(e.nome) + ' · ' + fmtData(e.data) + '</option>';
       });
 
       var senhaAuto = gerarSenhaSimples();
@@ -212,6 +215,7 @@
 
         '<div class="step-divider">🎫 Bilhete</div>' +
         '<div class="form-group"><label class="form-label">Bilhete fica visível</label><select id="f-bilhete-dias" class="form-select"><option value="0" selected>Imediato (após cadastro)</option><option value="3">3 dias antes do evento</option><option value="5">5 dias antes do evento</option><option value="7">7 dias antes do evento</option><option value="10">10 dias antes do evento</option><option value="15">15 dias antes do evento</option></select></div>' +
+        '<div class="hint-prefill" id="hint-prefill">💡 Pré-preenchido com a configuração do evento. Você pode mudar.</div>' +
 
         '<div class="step-divider">📝 Detalhes</div>' +
         '<div class="form-group"><label class="form-label">Descrição</label><textarea id="f-desc" class="form-textarea" placeholder="Anota algo pra lembrar depois (ex: lista da Maria)"></textarea></div>' +
@@ -224,10 +228,34 @@
       document.getElementById('novo-body').style.display = '';
 
       var fEv = document.getElementById('f-evento');
-      fEv.addEventListener('change', function(){
+
+      function aplicarEventoSelecionado(viaUsuario) {
         var sel = fEv.options[fEv.selectedIndex];
-        if (sel && sel.dataset.data) document.getElementById('f-data').value = sel.dataset.data;
-      });
+        if (!sel) return;
+        if (sel.dataset.data) document.getElementById('f-data').value = sel.dataset.data;
+
+        var bd = sel.dataset.bilheteDias;
+        var hint = document.getElementById('hint-prefill');
+        if (bd != null && bd !== '') {
+          var bdSelect = document.getElementById('f-bilhete-dias');
+          var existe = false;
+          for (var i = 0; i < bdSelect.options.length; i++) {
+            if (bdSelect.options[i].value === String(bd)) { existe = true; break; }
+          }
+          if (existe) {
+            bdSelect.value = String(bd);
+            if (sel.value) hint.classList.add('show');
+            else hint.classList.remove('show');
+          } else {
+            hint.classList.remove('show');
+          }
+        } else {
+          hint.classList.remove('show');
+        }
+      }
+
+      fEv.addEventListener('change', function(){ aplicarEventoSelecionado(true); });
+      if (fEv.value) aplicarEventoSelecionado(false);
 
       document.getElementById('btn-gerar-senha').addEventListener('click', function(){
         document.getElementById('f-resp-senha').value = gerarSenhaSimples();
@@ -353,11 +381,13 @@
                     '📅 Data: ' + fmtData(dataEvento) + '\n' +
                     '🎟️ Convites: ' + qtd + '\n\n' +
                     'Acesse o painel pra copiar os links e distribuir entre os convidados.\n\n' +
-                    'Jimmy\'s Bar · Londrina PR';
+                    'Jimmy\'s Bar · Londrina PR\n' +
+                    '📞 43 98412-9883\n' +
+                    '📍 @jimmys.londrina';
         document.getElementById('btn-wa-resp').addEventListener('click', function(){
           window.open('https://wa.me/?text=' + encodeURIComponent(msgWA), '_blank');
         });
-        document.getElementById('btn-copy-cred').addEventListener('click', function(btn){
+        document.getElementById('btn-copy-cred').addEventListener('click', function(){
           copiarTexto(msgWA, this);
         });
       }
