@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check-in · Jimmy's</title>
+  <link rel="stylesheet" href="assets/styles.css?v=3">
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script>
+    window.addEventListener('error', function(e) { alert('ERRO JS: ' + e.message + '\nLinha: ' + (e.lineno || '?')); });
+    window.addEventListener('unhandledrejection', function(e) { alert('PROMISE ERRO: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason))); });
+  </script>
+  <style>
+    body { background: #000; min-height: 100vh; }
+
+    /* LOGIN */
+    .login-wrap { max-width: 480px; margin: 0 auto; padding: var(--space-2xl) var(--space-lg); }
+    .login-header { text-align: center; padding: var(--space-2xl) 0 var(--space-lg); }
+    .login-stripes { display: flex; justify-content: center; gap: 6px; margin-bottom: var(--space-md); }
+    .login-stripe { width: 38px; height: 5px; border-radius: 2px; }
+    .login-stripe.r { background: var(--color-red); }
+    .login-stripe.w { background: var(--color-cream); }
+    .login-stripe.b { background: var(--color-navy); }
+    .login-logo { font-family: var(--font-display); font-size: 3rem; letter-spacing: 0.08em; color: var(--color-cream); line-height: 1; }
+    .login-logo strong { font-family: 'Playfair Display', serif; font-style: italic; color: var(--color-red); font-weight: 900; }
+    .login-sub { font-size: 0.8125rem; letter-spacing: 0.3em; color: var(--color-gold); text-transform: uppercase; margin-top: 8px; }
+    .login-card { background: var(--bg-secondary); border: 1px solid var(--border-default); border-top: 3px solid var(--color-gold); border-radius: var(--radius-md); padding: var(--space-lg); margin-top: var(--space-lg); }
+    .login-titulo { font-family: var(--font-display); color: var(--color-cream); font-size: 1.375rem; margin-bottom: 4px; text-align: center; }
+    .login-sub2 { font-size: 0.875rem; color: var(--text-muted); margin-bottom: var(--space-lg); text-align: center; }
+
+    /* SCANNER */
+    .scanner-topbar { background: #0a0a0a; padding: 12px var(--space-md); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-default); }
+    .scanner-user { display: flex; align-items: center; gap: 8px; color: var(--color-cream); font-size: 0.875rem; }
+    .scanner-user-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--color-gold); color: #000; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .scanner-area { padding: var(--space-md); }
+    .scanner-instrucao { text-align: center; color: var(--color-cream); font-size: 0.9375rem; margin-bottom: var(--space-md); }
+    #qr-reader { width: 100%; max-width: 480px; margin: 0 auto; border: 2px solid var(--color-gold); border-radius: var(--radius-md); overflow: hidden; background: #111; }
+    #qr-reader video { width: 100% !important; height: auto !important; }
+    .scanner-acoes { max-width: 480px; margin: var(--space-md) auto 0; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .scanner-stats { max-width: 480px; margin: var(--space-md) auto 0; display: flex; gap: 8px; }
+    .scanner-stat { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 8px; text-align: center; }
+    .scanner-stat-v { font-family: var(--font-display); font-size: 1.25rem; color: var(--color-cream); }
+    .scanner-stat-l { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+
+    /* RESULT MODAL */
+    .result-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: none; align-items: center; justify-content: center; padding: var(--space-md); }
+    .result-overlay.active { display: flex; }
+    .result-card { width: 100%; max-width: 480px; border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-secondary); }
+    .result-banner { padding: var(--space-xl) var(--space-md); text-align: center; }
+    .result-banner.ok { background: linear-gradient(135deg, #1a6b2e, #2aab47); }
+    .result-banner.error { background: linear-gradient(135deg, #8b0000, #c0392b); }
+    .result-banner.warn { background: linear-gradient(135deg, #b35900, #c9973c); }
+    .result-banner.used { background: linear-gradient(135deg, #4a4a00, #b35900); }
+    .result-icon { font-size: 5rem; line-height: 1; margin-bottom: 8px; }
+    .result-titulo { font-family: var(--font-display); font-size: 1.75rem; color: #fff; letter-spacing: 0.08em; }
+    .result-sub { font-size: 0.9375rem; color: rgba(255,255,255,0.9); margin-top: 4px; }
+    .result-body { padding: var(--space-lg); color: var(--color-cream); }
+    .result-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-default); font-size: 0.9375rem; }
+    .result-row:last-child { border-bottom: none; }
+    .result-l { color: var(--text-muted); }
+    .result-v { color: var(--color-cream); font-weight: 600; text-align: right; max-width: 60%; word-break: break-word; }
+    .result-acoes { padding: var(--space-md); display: flex; gap: 8px; flex-wrap: wrap; }
+    .result-acoes .btn { flex: 1; min-width: 140px; padding: 14px; font-size: 1rem; }
+
+    /* MANUAL */
+    .modal-backdrop { position: fixed; top:0;right:0;bottom:0;left:0; background: rgba(0,0,0,0.85); z-index: 1500; display: none; align-items: flex-end; justify-content: center; }
+    .modal-backdrop.active { display: flex; }
+    .modal-box { background: var(--bg-secondary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-top: 3px solid var(--color-red); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; padding: var(--space-lg); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-default); }
+    .modal-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-cream); }
+    .close-btn { background: var(--bg-tertiary); border: none; color: var(--text-secondary); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; font-size: 1.25rem; }
+  </style>
+</head>
+<body>
+  <!-- TELA DE LOGIN -->
+  <div id="screen-login" style="display:none;">
+    <div class="login-wrap">
+      <div class="login-header">
+        <div class="login-stripes"><div class="login-stripe r"></div><div class="login-stripe w"></div><div class="login-stripe b"></div></div>
+        <div class="login-logo">JIMMY<strong>'S</strong></div>
+        <div class="login-sub">Check-in</div>
+      </div>
+      <div class="login-card">
+        <div class="login-titulo">🚪 Acesso da Portaria</div>
+        <div class="login-sub2">Entre com suas credenciais de validador</div>
+        <div class="form-group"><label class="form-label">Login</label><input type="text" id="l-login" class="form-input" placeholder="seu_login" autocomplete="off" autocapitalize="off"></div>
+        <div class="form-group"><label class="form-label">Senha</label><input type="password" id="l-senha" class="form-input" placeholder="******" autocomplete="off"></div>
+        <button type="button" class="btn btn-primary btn-block" id="btn-entrar">Entrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TELA DO SCANNER -->
+  <div id="screen-scanner" style="display:none;">
+    <div class="scanner-topbar">
+      <div class="scanner-user">
+        <div class="scanner-user-icon" id="user-icon">?</div>
+        <div>
+          <div style="font-weight:bold;" id="user-nome">—</div>
+          <div style="font-size:0.6875rem;color:var(--text-muted);">Validador</div>
+        </div>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-sair">Sair</button>
+    </div>
+    <div class="scanner-area">
+      <div class="scanner-instrucao">Aponte a câmera pro QR code do bilhete</div>
+      <div id="qr-reader"></div>
+      <div class="scanner-acoes">
+        <button type="button" class="btn btn-gold" id="btn-manual">⌨️ Digitar código</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-resetar-cam">🔄 Reiniciar câmera</button>
+      </div>
+      <div class="scanner-stats">
+        <div class="scanner-stat"><div class="scanner-stat-v" id="st-ok">0</div><div class="scanner-stat-l">Liberados</div></div>
+        <div class="scanner-stat"><div class="scanner-stat-v" id="st-bloq">0</div><div class="scanner-stat-l">Bloqueados</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTADO -->
+  <div class="result-overlay" id="result-overlay">
+    <div class="result-card" id="result-card"></div>
+  </div>
+
+  <!-- MANUAL -->
+  <div class="modal-backdrop" id="modal-manual">
+    <div class="modal-box">
+      <div class="modal-header"><div class="modal-title">⌨️ Digitar Código</div><button type="button" class="close-btn" id="btn-fechar-manual">✕</button></div>
+      <div class="form-group"><label class="form-label">Código do bilhete</label><input type="text" id="m-token" class="form-input" placeholder="ABC123XYZ" autocapitalize="characters" autocomplete="off" style="font-family:monospace;letter-spacing:0.1em;font-size:1.0625rem;"></div>
+      <button type="button" class="btn btn-primary btn-block" id="btn-validar-manual">Validar</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase.js?v=3"></script>
+  <script>
+(function(){
+  try {
+    var BCRYPT = (window.dcodeIO && window.dcodeIO.bcrypt) || window.bcrypt;
+    var validador = null;
+    var scanner = null;
+    var processando = false;
+    var statsOk = 0, statsBloq = 0;
+    var sessionKey = 'validador_session';
+
+    function escapeHtml(s){if(s==null)return '';return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+    function diasEntre(dataIso) {
+      var hoje = new Date(); hoje.setHours(0,0,0,0);
+      var alvo = new Date(dataIso + 'T00:00:00');
+      return Math.ceil((alvo - hoje) / (1000 * 60 * 60 * 24));
+    }
+
+    // ---- LOGIN ----
+    function mostrarLogin() {
+      document.getElementById('screen-login').style.display = '';
+      document.getElementById('screen-scanner').style.display = 'none';
+    }
+
+    function mostrarScanner() {
+      document.getElementById('screen-login').style.display = 'none';
+      document.getElementById('screen-scanner').style.display = '';
+
+      document.getElementById('user-nome').textContent = validador.nome;
+      document.getElementById('user-icon').textContent = validador.nome.charAt(0).toUpperCase();
+
+      iniciarScanner();
+    }
+
+    async function entrar() {
+      var login = document.getElementById('l-login').value.trim().toLowerCase();
+      var senha = document.getElementById('l-senha').value;
+      if (!login || !senha) { toast('Preencha login e senha', 'error'); return; }
+      if (!BCRYPT) { toast('bcrypt não carregou. Recarrega.', 'error'); return; }
+
+      try {
+        var resp = await sb.from('validadores').select('*').eq('tenant_id', TENANT_ID).eq('login', login).maybeSingle();
+        if (resp.error) throw new Error(resp.error.message);
+        if (!resp.data) { toast('Login ou senha incorretos', 'error'); return; }
+        if (!resp.data.ativo) { toast('Validador desativado', 'error'); return; }
+
+        var ok = false;
+        try { ok = BCRYPT.compareSync(senha, resp.data.senha_hash || ''); } catch(e) { ok = false; }
+        if (!ok) { toast('Login ou senha incorretos', 'error'); return; }
+
+        validador = { id: resp.data.id, nome: resp.data.nome, login: resp.data.login };
+        sessionStorage.setItem(sessionKey, JSON.stringify(validador));
+
+        // Atualiza ultimo_acesso
+        sb.from('validadores').update({ ultimo_acesso: new Date().toISOString() }).eq('id', validador.id).then(function(){});
+
+        mostrarScanner();
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
+    function sair() {
+      if (scanner) {
+        try { scanner.stop().catch(function(){}); } catch(e){}
+      }
+      sessionStorage.removeItem(sessionKey);
+      validador = null;
+      mostrarLogin();
+    }
+
+    // ---- SCANNER ----
+    function iniciarScanner() {
+      if (!window.Html5Qrcode) { toast('Lib QR não carregou. Recarrega.', 'error'); return; }
+      try {
+        scanner = new Html5Qrcode('qr-reader');
+        scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          function(decodedText) {
+            if (processando) return;
+            processando = true;
+            scanner.pause(true);
+            validarToken(decodedText);
+          },
+          function(){}
+        ).catch(function(err){
+          toast('Erro câmera: ' + err.message + '. Use modo manual.', 'error');
+        });
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
+    function retomarScanner() {
+      processando = false;
+      try { if (scanner) scanner.resume(); } catch(e){}
+    }
+
+    function reiniciarCamera() {
+      if (!scanner) { iniciarScanner(); return; }
+      scanner.stop().then(function(){
+        document.getElementById('qr-reader').innerHTML = '';
+        scanner = null;
+        iniciarScanner();
+      }).catch(function(){
+        document.getElementById('qr-reader').innerHTML = '';
+        scanner = null;
+        iniciarScanner();
+      });
+    }
+
+    // ---- VALIDAÇÃO ----
+    async function validarToken(token) {
+      try {
+        var resp = await sb.from('convites')
+          .select('*, lotes(nome, data_evento, bilhete_dias_antes, eventos(nome, data, bilhete_dias_antes)), reservas!convites_reserva_id_fkey(qtd_pessoas, status, clientes(nome_completo, telefone))')
+          .eq('token', token)
+          .maybeSingle();
+
+        if (resp.error) { mostrarErro('⚠️', 'ERRO', resp.error.message); return; }
+        if (!resp.data) { mostrarErro('🚫', 'NÃO ENCONTRADO', 'Esse QR não existe no sistema.'); return; }
+
+        var c = resp.data;
+
+        // Cancelado
+        if (c.status === 'cancelado') {
+          mostrarErro('✗', 'CANCELADO', 'Esse bilhete foi cancelado.');
+          return;
+        }
+
+        // Sem reserva = nunca foi confirmado
+        if (!c.reserva_id || !c.reservas) {
+          mostrarErro('✗', 'NÃO CONFIRMADO', 'Esse convite nunca foi cadastrado.');
+          return;
+        }
+
+        var lote = c.lotes || {};
+        var ev = lote.eventos || {};
+        var nomeEvento = ev.nome || lote.nome || 'Evento';
+        var dataEvento = ev.data || lote.data_evento;
+        var bilheteDias = Math.max(lote.bilhete_dias_antes || 0, ev.bilhete_dias_antes || 0);
+        var diasRestantes = diasEntre(dataEvento);
+
+        // Bilhete ainda não liberado
+        if (bilheteDias > 0 && diasRestantes > bilheteDias) {
+          var diasFalta = diasRestantes - bilheteDias;
+          mostrarAviso('⏰', 'AINDA NÃO LIBERADO', 'Falta(m) ' + diasFalta + ' dia(s) pra esse bilhete ser válido.', c, nomeEvento);
+          return;
+        }
+
+        // Já fez check-in (REUSO!)
+        if (c.checkin_em) {
+          mostrarJaUsado(c, nomeEvento);
+          return;
+        }
+
+        // OK - libera
+        mostrarValido(c, nomeEvento);
+      } catch(err) { mostrarErro('⚠️', 'ERRO', err.message); }
+    }
+
+    // ---- TELAS DE RESULTADO ----
+    function mostrarValido(c, nomeEvento) {
+      var cliente = c.reservas.clientes || {};
+      var html =
+        '<div class="result-banner ok">' +
+          '<div class="result-icon">✓</div>' +
+          '<div class="result-titulo">BILHETE VÁLIDO</div>' +
+          '<div class="result-sub">Confira os dados antes de liberar</div>' +
+        '</div>' +
+        '<div class="result-body">' +
+          '<div class="result-row"><span class="result-l">Convidado</span><span class="result-v">' + escapeHtml(cliente.nome_completo || '—') + '</span></div>' +
+          '<div class="result-row"><span class="result-l">Pessoas</span><span class="result-v" style="font-size:1.25rem;color:var(--color-gold);">👥 ' + c.reservas.qtd_pessoas + '</span></div>' +
+          '<div class="result-row"><span class="result-l">Convite</span><span class="result-v">#' + c.numero_convite + '</span></div>' +
+          '<div class="result-row"><span class="result-l">Lote</span><span class="result-v">' + escapeHtml(c.lotes ? c.lotes.nome : '—') + '</span></div>' +
+        '</div>' +
+        '<div class="result-acoes">' +
+          '<button type="button" class="btn btn-success" id="btn-liberar" style="background:var(--color-green);">✓ LIBERAR ENTRADA</button>' +
+          '<button type="button" class="btn btn-danger" id="btn-bloquear">✗ Bloquear</button>' +
+        '</div>';
+
+      document.getElementById('result-card').innerHTML = html;
+      document.getElementById('result-overlay').classList.add('active');
+
+      document.getElementById('btn-liberar').addEventListener('click', function(){ liberarEntrada(c); });
+      document.getElementById('btn-bloquear').addEventListener('click', function(){ statsBloq++; atualizarStats(); fechar(); });
+    }
+
+    function mostrarJaUsado(c, nomeEvento) {
+      statsBloq++;
+      atualizarStats();
+      var cliente = c.reservas.clientes || {};
+      var html =
+        '<div class="result-banner used">' +
+          '<div class="result-icon">⚠</div>' +
+          '<div class="result-titulo">JÁ USADO</div>' +
+          '<div class="result-sub">Bilhete já validado anteriormente</div>' +
+        '</div>' +
+        '<div class="result-body">' +
+          '<div class="result-row"><span class="result-l">Convidado</span><span class="result-v">' + escapeHtml(cliente.nome_completo || '—') + '</span></div>' +
+          '<div class="result-row"><span class="result-l">Pessoas</span><span class="result-v">👥 ' + c.reservas.qtd_pessoas + '</span></div>' +
+          '<div class="result-row"><span class="result-l">Validado em</span><span class="result-v" style="color:#ffaa44;">' + fmtDataHora(c.checkin_em) + '</span></div>' +
+          '<div class="result-row"><span class="result-l">Convite</span><span class="result-v">#' + c.numero_convite + '</span></div>' +
+        '</div>' +
+        '<div class="result-acoes">' +
+          '<button type="button" class="btn btn-danger" id="btn-fechar-r">🚫 BARRAR</button>' +
+        '</div>';
+
+      document.getElementById('result-card').innerHTML = html;
+      document.getElementById('result-overlay').classList.add('active');
+      document.getElementById('btn-fechar-r').addEventListener('click', fechar);
+    }
+
+    function mostrarAviso(icon, titulo, msg, c, nomeEvento) {
+      statsBloq++;
+      atualizarStats();
+      var cliente = (c && c.reservas) ? c.reservas.clientes : null;
+      var infoExtra = cliente ? '<div class="result-row"><span class="result-l">Convidado</span><span class="result-v">' + escapeHtml(cliente.nome_completo || '—') + '</span></div>' : '';
+      var html =
+        '<div class="result-banner warn">' +
+          '<div class="result-icon">' + icon + '</div>' +
+          '<div class="result-titulo">' + titulo + '</div>' +
+          '<div class="result-sub">' + msg + '</div>' +
+        '</div>' +
+        (infoExtra ? '<div class="result-body">' + infoExtra + '</div>' : '') +
+        '<div class="result-acoes">' +
+          '<button type="button" class="btn btn-primary" id="btn-fechar-r">OK</button>' +
+        '</div>';
+      document.getElementById('result-card').innerHTML = html;
+      document.getElementById('result-overlay').classList.add('active');
+      document.getElementById('btn-fechar-r').addEventListener('click', fechar);
+    }
+
+    function mostrarErro(icon, titulo, msg) {
+      statsBloq++;
+      atualizarStats();
+      var html =
+        '<div class="result-banner error">' +
+          '<div class="result-icon">' + icon + '</div>' +
+          '<div class="result-titulo">' + titulo + '</div>' +
+          '<div class="result-sub">' + msg + '</div>' +
+        '</div>' +
+        '<div class="result-acoes">' +
+          '<button type="button" class="btn btn-primary" id="btn-fechar-r">Próximo</button>' +
+        '</div>';
+      document.getElementById('result-card').innerHTML = html;
+      document.getElementById('result-overlay').classList.add('active');
+      document.getElementById('btn-fechar-r').addEventListener('click', fechar);
+    }
+
+    async function liberarEntrada(c) {
+      try {
+        var resp = await sb.from('convites').update({
+          checkin_em: new Date().toISOString(),
+          checkin_por: validador.id
+        }).eq('id', c.id);
+
+        if (resp.error) { toast('Erro: ' + resp.error.message, 'error'); return; }
+
+        statsOk++;
+        atualizarStats();
+
+        // Mostra sucesso + auto-fecha em 2s
+        document.getElementById('result-card').innerHTML =
+          '<div class="result-banner ok">' +
+            '<div class="result-icon">🎉</div>' +
+            '<div class="result-titulo">ENTRADA LIBERADA</div>' +
+            '<div class="result-sub">Boa festa! 🍻</div>' +
+          '</div>' +
+          '<div class="result-body" style="text-align:center;padding:var(--space-xl);">' +
+            '<div style="font-size:2rem;color:var(--color-gold);font-family:var(--font-display);">👥 ' + c.reservas.qtd_pessoas + ' pessoa(s)</div>' +
+            '<div style="margin-top:8px;color:var(--text-muted);font-size:0.875rem;">Próximo bilhete em 2s...</div>' +
+          '</div>';
+        setTimeout(fechar, 2000);
+      } catch(err) { toast('Erro: ' + err.message, 'error'); }
+    }
+
+    function fechar() {
+      document.getElementById('result-overlay').classList.remove('active');
+      retomarScanner();
+    }
+
+    function atualizarStats() {
+      document.getElementById('st-ok').textContent = statsOk;
+      document.getElementById('st-bloq').textContent = statsBloq;
+    }
+
+    // ---- MANUAL ----
+    function abrirManual() {
+      document.getElementById('m-token').value = '';
+      document.getElementById('modal-manual').classList.add('active');
+      setTimeout(function(){ document.getElementById('m-token').focus(); }, 100);
+    }
+
+    function fecharManual() {
+      document.getElementById('modal-manual').classList.remove('active');
+    }
+
+    function validarManual() {
+      var token = document.getElementById('m-token').value.trim().toUpperCase();
+      if (!token) { toast('Digite o código', 'error'); return; }
+      fecharManual();
+      processando = true;
+      if (scanner) try { scanner.pause(true); } catch(e){}
+      validarToken(token);
+    }
+
+    // ---- INIT ----
+    var saved = sessionStorage.getItem(sessionKey);
+    if (saved) {
+      try {
+        validador = JSON.parse(saved);
+        mostrarScanner();
+      } catch(e) { mostrarLogin(); }
+    } else {
+      mostrarLogin();
+    }
+
+    document.getElementById('btn-entrar').addEventListener('click', entrar);
+    document.getElementById('l-senha').addEventListener('keypress', function(e){ if (e.key === 'Enter') entrar(); });
+    document.getElementById('btn-sair').addEventListener('click', sair);
+    document.getElementById('btn-manual').addEventListener('click', abrirManual);
+    document.getElementById('btn-resetar-cam').addEventListener('click', reiniciarCamera);
+    document.getElementById('btn-fechar-manual').addEventListener('click', fecharManual);
+    document.getElementById('btn-validar-manual').addEventListener('click', validarManual);
+    document.getElementById('m-token').addEventListener('keypress', function(e){ if (e.key === 'Enter') validarManual(); });
+    document.getElementById('modal-manual').addEventListener('click', function(e){ if (e.target === document.getElementById('modal-manual')) fecharManual(); });
+  } catch(err) { alert('Erro fatal: ' + err.message); }
+})();
+  </script>
+</body>
+</html>
