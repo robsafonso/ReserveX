@@ -162,7 +162,6 @@
     async function init() {
       try {
         await buscarLote();
-
         if (sessionStorage.getItem(sessionKey) === 'true') {
           mostrarPainel();
         } else {
@@ -324,7 +323,7 @@
         chip.addEventListener('click', function(){ filtroAtivo = chip.dataset.filtro; renderizar(); });
       });
       Array.prototype.forEach.call(document.querySelectorAll('button[data-copy]'), function(b){
-        b.addEventListener('click', function(){ copiarTexto(urlConvite(b.dataset.copy), b); });
+        b.addEventListener('click', function(){ copiarTexto(msgConvidado(b.dataset.copy), b); });
       });
       Array.prototype.forEach.call(document.querySelectorAll('button[data-wa]'), function(b){
         b.addEventListener('click', function(){
